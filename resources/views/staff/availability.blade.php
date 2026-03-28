@@ -576,9 +576,17 @@
     .fc-col-header-cell-cushion { color: #9ca3af; font-weight: 500; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
     .fc-daygrid-day-number { color: #d1d5db; font-size: 0.82rem; padding: 4px !important; }
 
-    /* Clickable date cells */
-    .fc-daygrid-day { cursor: pointer; }
-    .fc-daygrid-day:hover .fc-daygrid-day-frame { background-color: rgba(19,146,236,0.06); }
+    /* Clickable date cells (future and today) */
+    .fc-daygrid-day:not(.fc-day-past) { cursor: pointer; }
+    .fc-daygrid-day:not(.fc-day-past):hover .fc-daygrid-day-frame { background-color: rgba(19,146,236,0.06); }
+
+    /* Disabled past dates */
+    .fc-day-past .fc-daygrid-day-frame,
+    .fc-day-past.fc-timegrid-col {
+        opacity: 0.4;
+        cursor: not-allowed !important;
+        background-color: rgba(0, 0, 0, 0.1);
+    }
 
     /* Selected date */
     .fc-day-selected .fc-daygrid-day-frame {
@@ -854,7 +862,10 @@ function availabilityManager() {
                     right: 'monthView,weekView,listView',
                 },
                 themeSystem: 'standard',
-                dateClick(info) { self.selectDate(info.dateStr); },
+                dateClick(info) { 
+                    if (info.dateStr.substring(0, 10) < self.todayStr) return;
+                    self.selectDate(info.dateStr.substring(0, 10)); 
+                },
                 events(info, success, failure) {
                     const serviceId = serviceFilter.value;
                     const url = new URL('{{ route("staff.availability.calendar") }}', window.location.origin);

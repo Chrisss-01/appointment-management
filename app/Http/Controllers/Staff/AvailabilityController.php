@@ -37,12 +37,25 @@ class AvailabilityController extends Controller
     {
         $request->validate(['date' => 'required|date']);
 
+        $now = now();
+        $today = $now->toDateString();
+
+        if ($request->date < $today) {
+            return response()->json([]);
+        }
+
         $slots = AvailabilitySlot::where('staff_id', $request->user()->id)
             ->whereDate('date', $request->date)
             ->where('is_active', true)
             ->with(['service', 'generatedSlots'])
             ->orderBy('start_time')
             ->get()
+            ->filter(function ($slot) use ($now, $today, $request) {
+                if ($request->date === $today) {
+                    return Carbon::parse($slot->end_time)->gt($now);
+                }
+                return true;
+            })
             ->map(function ($slot) {
                 $total = $slot->generatedSlots->count();
                 $free = $slot->generatedSlots->where('status', 'available')->count();
@@ -57,7 +70,8 @@ class AvailabilityController extends Controller
                     'check_url' => route('staff.availability.check-bookings', $slot),
                     'destroy_url' => route('staff.availability.destroy', $slot),
                 ];
-            });
+            })
+            ->values();
 
         return response()->json($slots);
     }
@@ -74,12 +88,23 @@ class AvailabilityController extends Controller
 
         $staffId = $request->user()->id;
         $serviceId = $request->service_id;
+        $now = now();
+        $today = $now->toDateString();
 
         $slots = AvailabilitySlot::where('staff_id', $staffId)
             ->when($serviceId, fn($q) => $q->where('service_id', $serviceId))
             ->where('is_active', true)
+            ->whereDate('date', '>=', $today)
             ->with(['generatedSlots', 'service'])
+            ->orderBy('date')
+            ->orderBy('start_time')
             ->get()
+            ->filter(function ($slot) use ($now, $today) {
+                if ($slot->date->format('Y-m-d') === $today) {
+                    return Carbon::parse($slot->end_time)->gt($now);
+                }
+                return true;
+            })
             ->map(function ($slot) {
                 $totalGenerated = $slot->generatedSlots->count();
                 $booked = $slot->generatedSlots->where('status', 'booked')->count();
@@ -97,7 +122,8 @@ class AvailabilityController extends Controller
                     'service_color' => $slot->service->color,
                     'service_name' => $slot->service->name,
                 ];
-            });
+            })
+            ->values();
 
         return response()->json($slots);
     }
@@ -149,9 +175,9 @@ class AvailabilityController extends Controller
             ->orderBy('start_time')
             ->get()
             ->filter(function ($slot) use ($now, $today) {
-                // For today: hide slots whose start_time has already passed
+                // For today: hide slots whose end_time has already passed
                 if ($slot->date->toDateString() === $today) {
-                    return Carbon::parse($slot->start_time)->gt($now);
+                    return Carbon::parse($slot->end_time)->gt($now);
                 }
                 return true;
             })
