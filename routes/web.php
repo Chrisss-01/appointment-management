@@ -100,8 +100,12 @@ Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->grou
     // Clinical — Availability
     Route::get('/availability', [AvailabilityController::class, 'index'])->name('availability');
     Route::get('/availability/calendar-data', [AvailabilityController::class, 'calendarData'])->name('availability.calendar');
+    Route::get('/availability/by-date', [AvailabilityController::class, 'getByDate'])->name('availability.by-date');
     Route::get('/availability/services', [AvailabilityController::class, 'servicesWithAvailability'])->name('availability.services');
+    Route::get('/availability/list', [AvailabilityController::class, 'upcomingList'])->name('availability.list');
     Route::post('/availability', [AvailabilityController::class, 'store'])->name('availability.store');
+    Route::post('/availability/bulk', [AvailabilityController::class, 'storeBulk'])->name('availability.store-bulk');
+    Route::patch('/availability/{availabilitySlot}', [AvailabilityController::class, 'update'])->name('availability.update');
     Route::delete('/availability/{availabilitySlot}', [AvailabilityController::class, 'destroy'])->name('availability.destroy');
     Route::get('/availability/{availabilitySlot}/check-bookings', [AvailabilityController::class, 'checkBookings'])->name('availability.check-bookings');
     Route::get('/availability/{availabilitySlot}/slots', [AvailabilityController::class, 'slots'])->name('availability.slots');
