@@ -20,23 +20,45 @@
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     {{-- Medical Records --}}
-    <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl overflow-hidden">
+    <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl overflow-hidden flex flex-col h-full">
         <div class="px-5 py-4 border-b border-white/5">
             <h3 class="text-sm font-semibold text-white">Medical Records</h3>
         </div>
         @if($medicalRecords->isEmpty())
         <div class="px-5 py-8 text-center text-gray-500 text-sm">No records yet</div>
         @else
-        <div class="divide-y divide-white/5 max-h-96 overflow-y-auto">
+        <div class="divide-y divide-white/5 flex-1 overflow-y-auto custom-scrollbar">
             @foreach($medicalRecords as $record)
+            @php
+                $serviceColor = $record->appointment?->service?->color;
+                $fallbackColor = match($record->record_type) {
+                    'consultation' => '#1392EC',
+                    'dental' => '#3B82F6',
+                    default => '#F59E0B'
+                };
+                $finalColor = $serviceColor ?? $fallbackColor;
+            @endphp
             <div class="px-5 py-4">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-[#1392EC] font-medium capitalize">{{ $record->record_type }}</span>
+                    <span class="text-xs font-medium" style="color: {{ $finalColor }};">{{ $record->service_name ?? (ucfirst($record->record_type) . ' Record') }}</span>
                     <span class="text-[10px] text-gray-600">{{ $record->created_at->format('M d, Y') }}</span>
                 </div>
                 @if($record->chief_complaint) <p class="text-sm text-gray-300"><span class="text-gray-500">Complaint:</span> {{ $record->chief_complaint }}</p> @endif
                 @if($record->diagnosis) <p class="text-sm text-gray-300 mt-1"><span class="text-gray-500">Diagnosis:</span> {{ $record->diagnosis }}</p> @endif
                 @if($record->treatment) <p class="text-sm text-gray-300 mt-1"><span class="text-gray-500">Treatment:</span> {{ $record->treatment }}</p> @endif
+                @if($record->prescription) <p class="text-sm text-gray-300 mt-1"><span class="text-gray-500">Prescription:</span> {{ $record->prescription }}</p> @endif
+                
+                @if($record->vital_signs)
+                <div class="mt-3 flex flex-wrap gap-2">
+                    @foreach($record->vital_signs as $key => $val)
+                    @if($val)
+                    <span class="px-2 py-1 bg-white/5 rounded text-[10px] text-gray-400">
+                        <span class="text-gray-500">{{ ucfirst(str_replace('_', ' ', $key)) }}:</span> {{ $val }}
+                    </span>
+                    @endif
+                    @endforeach
+                </div>
+                @endif
             </div>
             @endforeach
         </div>
@@ -50,14 +72,19 @@
             @csrf
             <input type="hidden" name="student_id" value="{{ $patient->id }}">
 
-            <div>
-                <label class="block text-xs text-gray-400 mb-1.5">Record Type</label>
-                <select name="record_type" required class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
-                    <option value="consultation">Consultation</option>
-                    <option value="dental">Dental</option>
-                    <option value="follow_up">Follow Up</option>
-                    <option value="emergency">Emergency</option>
-                </select>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5">Record Type</label>
+                    <select name="record_type" required class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                        <option value="consultation">Consultation</option>
+                        <option value="dental">Dental</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5">Service Name (Title)</label>
+                    <input type="text" name="service_name" placeholder="E.g., Vision Screening" class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                </div>
             </div>
 
             <div>

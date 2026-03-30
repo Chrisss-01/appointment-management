@@ -188,6 +188,7 @@ class AppointmentController extends Controller
             'staff_id' => $request->user()->id,
             'appointment_id' => $appointment->id,
             'record_type' => $recordType,
+            'service_name' => $appointment->service->name,
             'chief_complaint' => $validated['chief_complaint'] ?? null,
             'diagnosis' => $validated['diagnosis'] ?? null,
             'treatment' => $validated['treatment'] ?? null,

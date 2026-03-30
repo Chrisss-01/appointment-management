@@ -17,6 +17,7 @@ class StoreMedicalRecordRequest extends FormRequest
             'student_id' => 'required|exists:users,id',
             'appointment_id' => 'nullable|exists:appointments,id',
             'record_type' => 'required|in:consultation,dental,general',
+            'service_name' => 'nullable|string|max:255',
             'chief_complaint' => 'nullable|string|max:1000',
             'diagnosis' => 'nullable|string|max:1000',
             'treatment' => 'nullable|string|max:1000',

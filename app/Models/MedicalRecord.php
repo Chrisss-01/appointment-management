@@ -15,6 +15,7 @@ class MedicalRecord extends Model
         'staff_id',
         'appointment_id',
         'record_type',
+        'service_name',
         'chief_complaint',
         'diagnosis',
         'treatment',

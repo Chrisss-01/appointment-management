@@ -48,7 +48,7 @@
 
 <a href="{{ route('staff.certificate-requests') }}" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl {{ request()->routeIs('staff.certificate-requests*') ? 'active' : 'text-gray-400' }}">
     <span class="material-symbols-outlined nav-icon" style="font-size:20px;">verified</span>
-    <span class="nav-text text-sm">Certificate Requests</span>
+    <span class="nav-text text-sm whitespace-nowrap">Certificate Requests</span>
 </a>
 
 <a href="{{ route('staff.announcements') }}" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl {{ request()->routeIs('staff.announcements') ? 'active' : 'text-gray-400' }}">

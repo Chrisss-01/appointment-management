@@ -10,7 +10,7 @@
     <button data-submenu="users-menu" class="nav-link flex items-center justify-between w-full px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.students*') || request()->routeIs('admin.staff*') ? 'active' : 'text-gray-400' }}">
         <div class="flex items-center gap-3">
             <span class="material-symbols-outlined nav-icon" style="font-size:20px;">group</span>
-            <span class="nav-text text-sm">User Management</span>
+            <span class="nav-text text-sm whitespace-nowrap">User Management</span>
         </div>
         <span class="material-symbols-outlined submenu-arrow text-xs transition-transform duration-200 {{ request()->routeIs('admin.students*') || request()->routeIs('admin.staff*') ? 'rotate-180' : '' }}" style="font-size:16px;">expand_more</span>
     </button>
@@ -29,7 +29,7 @@
     <button data-submenu="clinic-mgmt-menu" class="nav-link flex items-center justify-between w-full px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.services*') || request()->routeIs('admin.appointments*') ? 'active' : 'text-gray-400' }}">
         <div class="flex items-center gap-3">
             <span class="material-symbols-outlined nav-icon" style="font-size:20px;">local_hospital</span>
-            <span class="nav-text text-sm">Clinic Management</span>
+            <span class="nav-text text-sm whitespace-nowrap">Clinic Management</span>
         </div>
         <span class="material-symbols-outlined submenu-arrow text-xs transition-transform duration-200 {{ request()->routeIs('admin.services*') || request()->routeIs('admin.appointments*') ? 'rotate-180' : '' }}" style="font-size:16px;">expand_more</span>
     </button>
@@ -48,7 +48,7 @@
     <button data-submenu="cert-mgmt-menu" class="nav-link flex items-center justify-between w-full px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.certificate-types*') || request()->routeIs('admin.doctor-signatures*') ? 'active' : 'text-gray-400' }}">
         <div class="flex items-center gap-3">
             <span class="material-symbols-outlined nav-icon" style="font-size:20px;">verified</span>
-            <span class="nav-text text-sm">Certificate Management</span>
+            <span class="nav-text text-sm whitespace-nowrap">Certificate Management</span>
         </div>
         <span class="material-symbols-outlined submenu-arrow text-xs transition-transform duration-200 {{ request()->routeIs('admin.certificate-types*') || request()->routeIs('admin.doctor-signatures*') ? 'rotate-180' : '' }}" style="font-size:16px;">expand_more</span>
     </button>
@@ -64,7 +64,7 @@
 
 <a href="{{ route('admin.reports') }}" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.reports') ? 'active' : 'text-gray-400' }}">
     <span class="material-symbols-outlined nav-icon" style="font-size:20px;">bar_chart</span>
-    <span class="nav-text text-sm">Reports & Analytics</span>
+    <span class="nav-text text-sm whitespace-nowrap">Reports & Analytics</span>
 </a>
 
 <a href="{{ route('admin.announcements') }}" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.announcements*') ? 'active' : 'text-gray-400' }}">

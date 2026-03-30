@@ -66,6 +66,10 @@ class PatientController extends Controller
         $validated = $request->validated();
         $validated['staff_id'] = $request->user()->id;
 
+        if (empty($validated['service_name'])) {
+            $validated['service_name'] = ucfirst($validated['record_type']) . ' Record';
+        }
+
         $record = MedicalRecord::create($validated);
 
         return back()->with('success', 'Medical record saved successfully.');

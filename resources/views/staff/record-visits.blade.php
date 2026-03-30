@@ -168,7 +168,9 @@
                                         <div class="flex-1 pb-1">
                                             <p class="text-[11px] text-gray-400 font-mono tracking-wide" x-text="new Date(record.created_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year:'numeric'})"></p>
                                             <p class="text-xs text-gray-300 mt-0.5">
-                                                <span class="font-medium text-[#1392EC]" x-text="(record.appointment?.service?.name || record.record_type).replace('_', ' ')"></span>: 
+                                                <span class="font-medium" 
+                                                      :style="`color: ${record.appointment?.service?.color || (record.record_type === 'dental' ? '#3B82F6' : '#1392EC')}`"
+                                                      x-text="(record.service_name || record.appointment?.service?.name || record.record_type).replace('_', ' ')"></span>: 
                                                 <span x-text="record.chief_complaint || 'Routine checkup'"></span>
                                             </p>
                                         </div>
@@ -179,7 +181,7 @@
                     </div>
 
                     {{-- Form Area --}}
-                    <form id="consultationForm" :action="`/staff/record-visits/${appointment?.id}/consultation`" method="POST" class="p-5 space-y-5">
+                    <form id="consultationForm" :action="`/staff/record-visits/${appointment?.id}/consultation`" method="POST" class="p-5 space-y-5" @submit="submitForm()">
                         @csrf
 
                         {{-- Vital Signs (Always shown) --}}
@@ -259,13 +261,16 @@
 
                 {{-- Footer Actions --}}
                 <div class="px-5 py-4 border-t border-white/5 bg-[#141414] shrink-0 flex gap-3">
-                    <button type="submit" form="consultationForm" class="flex-1 py-2.5 bg-[#1392EC] hover:bg-[#1392EC]/90 text-white text-sm font-semibold rounded-xl tracking-wide transition-all shadow-lg shadow-[#1392EC]/20 flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined" style="font-size:18px;">save</span>
-                        Save & Complete
+                    <button type="submit" form="consultationForm" 
+                        :disabled="isSaving"
+                        class="flex-1 py-2.5 bg-[#1392EC] text-white text-sm font-semibold rounded-xl tracking-wide transition-all shadow-lg shadow-[#1392EC]/20 flex items-center justify-center gap-2"
+                        :class="isSaving ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#1392EC]/90 cursor-pointer active:scale-[0.98]'">
+                        <span class="material-symbols-outlined" :class="isSaving ? 'animate-spin' : ''" style="font-size:18px;" x-text="isSaving ? 'progress_activity' : 'save'"></span>
+                        <span x-text="isSaving ? 'Saving...' : 'Save & Complete'"></span>
                     </button>
                     <form :action="`/staff/appointments/${appointment?.id}/no-show`" method="POST" onsubmit="return confirm('Mark as No Show?')">
                         @csrf @method('PATCH')
-                        <button type="submit" class="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium rounded-xl transition-all h-full">
+                        <button type="submit" class="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium rounded-xl transition-all h-full cursor-pointer active:scale-[0.98]">
                             No Show
                         </button>
                     </form>
@@ -285,13 +290,10 @@
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('consultationFlow', () => ({
-            isOpen: false,
-            isLoading: false,
-            appointment: null,
-            history: [],
-            formType: 'standard_consultation',
+            isSaving: false,
             
             openPanel(id) {
+                this.isSaving = false;
                 this.isLoading = true;
                 this.isOpen = true;
                 
@@ -309,12 +311,19 @@
                     });
             },
             
+            submitForm() {
+                this.isSaving = true;
+                // Allow form to submit naturally
+                return true;
+            },
+            
             closePanel() {
                 if (!this.isOpen) return;
                 this.isOpen = false;
                 setTimeout(() => {
                     this.appointment = null;
                     this.history = [];
+                    this.isSaving = false;
                 }, 300);
             }
         }));
