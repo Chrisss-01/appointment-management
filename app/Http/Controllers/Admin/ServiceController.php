@@ -29,6 +29,7 @@ class ServiceController extends Controller
             'description' => 'nullable|string|max:500',
             'duration_minutes' => 'required|integer|min:5|max:60',
             'color' => 'required|string|max:7',
+            'form_type' => 'required|string|in:standard_consultation,vital_signs_only',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -48,6 +49,7 @@ class ServiceController extends Controller
             'description' => 'nullable|string|max:500',
             'duration_minutes' => 'required|integer|min:5|max:60',
             'color' => 'required|string|max:7',
+            'form_type' => 'required|string|in:standard_consultation,vital_signs_only',
             'is_active' => 'nullable|boolean',
         ]);
 

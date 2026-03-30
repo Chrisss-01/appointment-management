@@ -20,6 +20,7 @@ class MedicalRecord extends Model
         'treatment',
         'prescription',
         'vital_signs',
+        'visual_acuity',
         'notes',
     ];
 
@@ -27,6 +28,7 @@ class MedicalRecord extends Model
     {
         return [
             'vital_signs' => 'array',
+            'visual_acuity' => 'array',
         ];
     }
 

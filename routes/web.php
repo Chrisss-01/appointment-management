@@ -116,7 +116,11 @@ Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->grou
     Route::patch('/appointments/{appointment}/reject', [StaffAppointment::class, 'reject'])->name('appointments.reject');
     Route::patch('/appointments/{appointment}/complete', [StaffAppointment::class, 'complete'])->name('appointments.complete');
     Route::patch('/appointments/{appointment}/no-show', [StaffAppointment::class, 'noShow'])->name('appointments.no-show');
+    
+    // Clinical — Record Visits
     Route::get('/record-visits', [StaffAppointment::class, 'recordVisit'])->name('record-visits');
+    Route::get('/record-visits/{appointment}/consultation', [StaffAppointment::class, 'showConsultation'])->name('record-visits.consultation');
+    Route::post('/record-visits/{appointment}/consultation', [StaffAppointment::class, 'storeConsultation'])->name('record-visits.consultation.store');
 
     // Clinical — Patients
     Route::get('/patients', [PatientController::class, 'index'])->name('patients');

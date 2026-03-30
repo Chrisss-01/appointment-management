@@ -19,6 +19,13 @@
                     <label class="block text-xs text-gray-400 mb-1.5">Description</label>
                     <textarea name="description" rows="2" class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#1392EC] resize-none"></textarea>
                 </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5">Form Type</label>
+                    <select name="form_type" required class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                        <option value="standard_consultation">Standard Consultation</option>
+                        <option value="vital_signs_only">Vital Signs Only</option>
+                    </select>
+                </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1.5">Duration (min)</label>
@@ -70,6 +77,13 @@
                         <div class="w-24">
                             <label class="block text-xs text-gray-500 mb-1">Duration</label>
                             <input type="number" name="duration_minutes" value="{{ $service->duration_minutes }}" min="5" max="60" required class="w-full bg-[#141414] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                        </div>
+                        <div class="flex-1 min-w-[120px]">
+                            <label class="block text-xs text-gray-500 mb-1">Form Type</label>
+                            <select name="form_type" required class="w-full bg-[#141414] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                                <option value="standard_consultation" {{ $service->form_type === 'standard_consultation' ? 'selected' : '' }}>Consultation</option>
+                                <option value="vital_signs_only" {{ $service->form_type === 'vital_signs_only' ? 'selected' : '' }}>Vital Signs Only</option>
+                            </select>
                         </div>
                         <div class="w-14">
                             <label class="block text-xs text-gray-500 mb-1">Color</label>

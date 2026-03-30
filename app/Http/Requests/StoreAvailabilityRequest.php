@@ -30,4 +30,19 @@ class StoreAvailabilityRequest extends FormRequest
             'end_time.after' => 'End time must be after start time.',
         ];
     }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $date = $this->input('date');
+            $startTime = $this->input('start_time');
+
+            if ($date && $startTime && \Carbon\Carbon::parse($date)->isToday()) {
+                $now = now()->format('H:i');
+                if ($startTime <= $now) {
+                    $validator->errors()->add('start_time', 'Start time must be after the current time for today.');
+                }
+            }
+        });
+    }
 }

@@ -20,6 +20,7 @@ class ServiceSeeder extends Seeder
                 'duration_minutes' => 15,
                 'color' => '#1392EC', // blue
                 'is_active' => true,
+                'form_type' => 'standard_consultation',
             ],
             [
                 'name' => 'Dental Consultation',
@@ -28,6 +29,7 @@ class ServiceSeeder extends Seeder
                 'duration_minutes' => 15,
                 'color' => '#A855F7', // purple
                 'is_active' => true,
+                'form_type' => 'standard_consultation',
             ],
             [
                 'name' => 'Medical Certificate Request',
@@ -36,6 +38,7 @@ class ServiceSeeder extends Seeder
                 'duration_minutes' => 15,
                 'color' => '#F59E0B', // amber
                 'is_active' => true,
+                'form_type' => 'certificate_request',
             ],
         ];
 

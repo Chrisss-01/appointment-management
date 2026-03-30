@@ -204,18 +204,24 @@
                                     </p>
                                 </div>
 
-                                {{-- Stats + Delete --}}
+                                {{-- Stats + Actions --}}
                                 <div class="flex items-center gap-2 shrink-0">
                                     <div class="text-right">
                                         <span class="block text-[10px] text-gray-600" x-text="slot.total_slots + ' slots'"></span>
                                         <span class="block text-[10px] text-[#1392EC]" x-text="slot.free_slots + ' free'"></span>
                                     </div>
-                                    <button @click="deleteTimeslot(slot)"
-                                        :disabled="deleting === slot.id"
-                                        class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all duration-150 disabled:opacity-40">
-                                        <span class="material-symbols-outlined" style="font-size:15px;"
-                                              x-text="deleting === slot.id ? 'hourglass_empty' : 'delete'"></span>
-                                    </button>
+                                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-150">
+                                        <button @click="openEditModal(slot)" title="Edit"
+                                            class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-white hover:bg-white/8 transition-all duration-150">
+                                            <span class="material-symbols-outlined" style="font-size:15px;">edit</span>
+                                        </button>
+                                        <button @click="deleteTimeslot(slot)" title="Delete"
+                                            :disabled="deleting === slot.id"
+                                            class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150 disabled:opacity-40">
+                                            <span class="material-symbols-outlined" style="font-size:15px;"
+                                                x-text="deleting === slot.id ? 'hourglass_empty' : 'delete'"></span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -545,9 +551,10 @@
                 <button type="button" id="edit-modal-cancel"
                     class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium rounded-xl transition-colors">Cancel</button>
                 <button type="button" id="edit-modal-save"
-                    class="flex-1 py-2.5 bg-[#1392EC] hover:bg-[#1392EC]/90 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined" style="font-size:16px;">save</span>
-                    Save Changes
+                    class="flex-1 py-2.5 bg-[#1392EC] hover:bg-[#1392EC]/80 active:bg-[#0d82d6] text-white text-sm font-semibold rounded-xl transition-all duration-150 shadow-md shadow-[#1392EC]/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="edit-modal-save-icon" class="material-symbols-outlined" style="font-size:16px;">save</span>
+                    <span id="edit-modal-save-spinner" class="material-symbols-outlined" style="font-size:16px; display: none; animation: spin 1s linear infinite;">progress_activity</span>
+                    <span id="edit-modal-save-text">Save Changes</span>
                 </button>
             </div>
         </div>
@@ -623,6 +630,10 @@
     #availability-drawer {
         box-shadow: -12px 0 40px rgba(0,0,0,0.5);
     }
+
+    /* Global button feedback */
+    button { cursor: pointer; }
+    button:active:not(:disabled) { transform: scale(0.98); }
 
     /* Spinner animation for progress_activity icon */
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -768,6 +779,17 @@ function availabilityManager() {
             modal._slot = slot;
             modal.classList.replace('hidden', 'flex');
             document.body.style.overflow = 'hidden';
+
+            // Reset save button state
+            const saveBtn = document.getElementById('edit-modal-save');
+            const iconEl = document.getElementById('edit-modal-save-icon');
+            const spinnerEl = document.getElementById('edit-modal-save-spinner');
+            const textEl = document.getElementById('edit-modal-save-text');
+
+            saveBtn.disabled = false;
+            iconEl.style.display = 'inline-block';
+            spinnerEl.style.display = 'none';
+            textEl.textContent = 'Save Changes';
         },
 
         initEditModal() {
@@ -801,7 +823,16 @@ function availabilityManager() {
                 }
 
                 errEl.classList.add('hidden');
+                
+                // Show loading state
                 saveBtn.disabled = true;
+                const iconEl = document.getElementById('edit-modal-save-icon');
+                const spinnerEl = document.getElementById('edit-modal-save-spinner');
+                const textEl = document.getElementById('edit-modal-save-text');
+                
+                iconEl.style.display = 'none';
+                spinnerEl.style.display = 'inline-block';
+                textEl.textContent = 'Saving...';
 
                 const payload = { service_id: svcEl.value };
                 if (!slot.has_bookings) {
@@ -832,11 +863,19 @@ function availabilityManager() {
                     closeEdit();
                     self.fetchList();
                     self.refetchCalendar();
+                    if (self.selectedDate) self.fetchTimeslots();
                 } catch {
                     errEl.textContent = 'Network error. Please try again.';
                     errEl.classList.remove('hidden');
                 } finally {
                     saveBtn.disabled = false;
+                    const iconEl = document.getElementById('edit-modal-save-icon');
+                    const spinnerEl = document.getElementById('edit-modal-save-spinner');
+                    const textEl = document.getElementById('edit-modal-save-text');
+                    
+                    iconEl.style.display = 'inline-block';
+                    spinnerEl.style.display = 'none';
+                    textEl.textContent = 'Save Changes';
                 }
             });
         },

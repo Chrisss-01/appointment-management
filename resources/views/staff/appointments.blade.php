@@ -71,14 +71,9 @@
                     </form>
                     <button onclick="showRejectModal({{ $apt->id }})" class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg transition-all">Reject</button>
                     @elseif($apt->status === 'approved')
-                    <form action="{{ route('staff.appointments.complete', $apt) }}" method="POST">
-                        @csrf @method('PATCH')
-                        <button class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-all">Complete</button>
-                    </form>
-                    <form action="{{ route('staff.appointments.no-show', $apt) }}" method="POST" onsubmit="return confirm('Mark as no-show?')">
-                        @csrf @method('PATCH')
-                        <button class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 text-xs font-medium rounded-lg transition-all">No Show</button>
-                    </form>
+                    <a href="{{ route('staff.record-visits') }}" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium rounded-lg transition-all">
+                        Go to Record Visits →
+                    </a>
                     @endif
                 </div>
             </div>

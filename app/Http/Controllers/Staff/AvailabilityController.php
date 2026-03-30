@@ -57,18 +57,32 @@ class AvailabilityController extends Controller
                 return true;
             })
             ->map(function ($slot) {
-                $total = $slot->generatedSlots->count();
-                $free = $slot->generatedSlots->where('status', 'available')->count();
+                $total  = $slot->generatedSlots->count();
+                $booked = $slot->generatedSlots->where('status', 'booked')->count();
+                $free   = $slot->generatedSlots->where('status', 'available')->count();
+
                 return [
-                    'id' => $slot->id,
-                    'service_name' => $slot->service->name,
-                    'service_color' => $slot->service->color,
-                    'start_time' => \Carbon\Carbon::parse($slot->start_time)->format('g:i A'),
-                    'end_time' => \Carbon\Carbon::parse($slot->end_time)->format('g:i A'),
-                    'total_slots' => $total,
-                    'free_slots' => $free,
-                    'check_url' => route('staff.availability.check-bookings', $slot),
-                    'destroy_url' => route('staff.availability.destroy', $slot),
+                    'id'              => $slot->id,
+                    'date'            => $slot->date->format('Y-m-d'),
+                    'date_formatted'  => $slot->date->format('F j, Y'),
+                    'date_label'      => $slot->date->isToday()    ? 'Today'
+                                      : ($slot->date->isTomorrow() ? 'Tomorrow'
+                                      : $slot->date->format('l, F j')),
+                    'service_id'      => $slot->service_id,
+                    'service_name'    => $slot->service->name,
+                    'service_color'   => $slot->service->color,
+                    'start_time_raw'  => Carbon::parse($slot->start_time)->format('H:i'),
+                    'end_time_raw'    => Carbon::parse($slot->end_time)->format('H:i'),
+                    'start_time'      => Carbon::parse($slot->start_time)->format('g:i A'),
+                    'end_time'        => Carbon::parse($slot->end_time)->format('g:i A'),
+                    'slot_duration'   => $slot->slot_duration,
+                    'total_slots'     => $total,
+                    'booked_slots'    => $booked,
+                    'free_slots'      => $free,
+                    'has_bookings'    => $booked > 0,
+                    'check_url'       => route('staff.availability.check-bookings', $slot),
+                    'destroy_url'     => route('staff.availability.destroy', $slot),
+                    'update_url'      => route('staff.availability.update', $slot),
                 ];
             })
             ->values();
@@ -251,7 +265,43 @@ class AvailabilityController extends Controller
             unset($validated['start_time'], $validated['end_time'], $validated['slot_duration']);
         }
 
+        // Check for overlap if timetable might change
+        if (!$hasBookings && (isset($validated['start_time']) || isset($validated['end_time']))) {
+            $checkStart = $validated['start_time'] ?? \Carbon\Carbon::parse($availabilitySlot->start_time)->format('H:i');
+            $checkEnd = $validated['end_time'] ?? \Carbon\Carbon::parse($availabilitySlot->end_time)->format('H:i');
+            $checkService = $validated['service_id'] ?? $availabilitySlot->service_id;
+
+            $overlap = AvailabilitySlot::where('staff_id', $availabilitySlot->staff_id)
+                ->where('service_id', $checkService)
+                ->where('date', $availabilitySlot->date)
+                ->where('id', '!=', $availabilitySlot->id)
+                ->where('is_active', true)
+                ->where('start_time', '<', $checkEnd)
+                ->where('end_time', '>', $checkStart)
+                ->exists();
+
+            if ($overlap) {
+                return response()->json(['success' => false, 'message' => 'This time block overlaps with an existing availability.'], 422);
+            }
+        }
+
+        $timetableChanged = false;
+        if (!$hasBookings) {
+            if (isset($validated['start_time']) && \Carbon\Carbon::parse($validated['start_time'])->format('H:i:s') !== $availabilitySlot->start_time) $timetableChanged = true;
+            if (isset($validated['end_time']) && \Carbon\Carbon::parse($validated['end_time'])->format('H:i:s') !== $availabilitySlot->end_time) $timetableChanged = true;
+            if (isset($validated['slot_duration']) && $validated['slot_duration'] != $availabilitySlot->slot_duration) $timetableChanged = true;
+        }
+
         $availabilitySlot->update($validated);
+
+        if ($timetableChanged) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($availabilitySlot) {
+                // Force wipe existing generated slots for this ID to guarantee a clean slate
+                $availabilitySlot->generatedSlots()->delete();
+                // Generate the fresh correct slots
+                $this->slotService->generateSlots($availabilitySlot->fresh());
+            });
+        }
 
         return response()->json(['success' => true, 'message' => 'Availability updated.']);
     }
@@ -354,9 +404,15 @@ class AvailabilityController extends Controller
 
         $created  = 0;
         $skipped  = 0;
+        $pastTimeSkipped = 0;
         $totalSlots = 0;
 
         foreach ($dates as $date) {
+            // Skip if date is today and start time has already passed
+            if ($date === now()->toDateString() && $startTime <= now()->format('H:i')) {
+                $pastTimeSkipped++;
+                continue;
+            }
             // Skip if an overlapping block already exists for this service+date
             $overlap = AvailabilitySlot::where('staff_id', $staffId)
                 ->where('service_id', $serviceId)
@@ -387,12 +443,12 @@ class AvailabilityController extends Controller
         }
 
         $message = "Created {$created} availability block(s) with {$totalSlots} total time slots.";
-        if ($skipped > 0) {
-            $message .= " {$skipped} date(s) skipped (overlap detected).";
+        if ($skipped > 0 || $pastTimeSkipped > 0) {
+            $message .= " " . ($skipped + $pastTimeSkipped) . " date(s) skipped (overlap or past time detected).";
         }
 
 
-        return response()->json(['success' => true, 'message' => $message, 'created' => $created, 'skipped' => $skipped]);
+        return response()->json(['success' => true, 'message' => $message, 'created' => $created, 'skipped' => $skipped, 'pastTimeSkipped' => $pastTimeSkipped]);
     }
 
     /**
