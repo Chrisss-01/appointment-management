@@ -14,14 +14,26 @@
         <a href="?filter=upcoming" class="px-4 py-2 rounded-xl text-sm font-medium transition-all {{ $filter === 'upcoming' ? 'bg-[#1392EC] text-white' : 'bg-[#1A1A1A] text-gray-400 border border-white/5 hover:text-white' }}">
             Upcoming
         </a>
+        <a href="?filter=missed" class="px-4 py-2 rounded-xl text-sm font-medium transition-all {{ $filter === 'missed' ? 'bg-[#1392EC] text-white' : 'bg-[#1A1A1A] text-gray-400 border border-white/5 hover:text-white' }}">
+            Missed
+        </a>
     </div>
 
     {{-- Appointment List --}}
     <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl flex-1 overflow-hidden flex flex-col relative">
         <div class="px-5 py-4 border-b border-white/5 shrink-0 flex items-center justify-between">
             <div>
-                <h3 class="text-sm font-semibold text-white">{{ $filter === 'today' ? "Today's Queue" : "Upcoming Scheduled" }}</h3>
-                <p class="text-xs text-gray-500 mt-0.5">Click an appointment to begin consultation</p>
+                <h3 class="text-sm font-semibold text-white">
+                    @if($filter === 'today') Today's Queue
+                    @elseif($filter === 'missed') Missed / Unrecorded
+                    @else Upcoming Scheduled
+                    @endif
+                </h3>
+                <p class="text-xs text-gray-500 mt-0.5">
+                    @if($filter === 'missed') Approved appointments past their date — mark as No Show or record retroactively
+                    @else Click an appointment to begin consultation
+                    @endif
+                </p>
             </div>
             <div class="text-xs text-gray-400">
                 {{ $appointments->count() }} appointment(s)
@@ -32,12 +44,12 @@
             @if($appointments->isEmpty())
             <div class="px-5 py-24 text-center">
                 <span class="material-symbols-outlined text-gray-600 mb-3" style="font-size:48px;">event_available</span>
-                <p class="text-gray-400 text-sm">No {{ $filter }} appointments to record</p>
+                <p class="text-gray-400 text-sm">No {{ $filter === 'missed' ? 'missed' : $filter }} appointments to record</p>
             </div>
             @else
             <div class="divide-y divide-white/5">
                 @foreach($appointments as $apt)
-                <div @click="openPanel({{ $apt->id }})" class="px-5 py-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                <div @click="openPanel({{ $apt->id }})" class="px-5 py-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group {{ $filter === 'missed' ? 'border-l-2 border-l-amber-500/50' : '' }}">
                     <div class="text-center shrink-0 w-12">
                         <span class="text-lg font-bold text-gray-400 group-hover:text-white transition-colors">
                             #{{ str_pad($apt->queue_number ?? 0, 2, '0', STR_PAD_LEFT) }}
@@ -57,7 +69,7 @@
                         <p class="text-[11px] text-gray-500 flex items-center gap-1.5 truncate">
                             <span class="w-2 h-2 rounded-full" style="background-color: {{ $apt->service->color ?? '#1392EC' }}"></span>
                             {{ $apt->service->name }} · 
-                            @if($filter === 'upcoming' && !$apt->date->isToday())
+                            @if($filter === 'missed' || ($filter === 'upcoming' && !$apt->date->isToday()))
                                 {{ $apt->date->format('M d') }} ·
                             @endif
                             {{ \Carbon\Carbon::parse($apt->start_time)->format('g:i A') }}
@@ -184,8 +196,8 @@
                     <form id="consultationForm" :action="`/staff/record-visits/${appointment?.id}/consultation`" method="POST" class="p-5 space-y-5" @submit="submitForm()">
                         @csrf
 
-                        {{-- Vital Signs (Always shown) --}}
-                        <div>
+                        {{-- Vital Signs (hidden for vision screening) --}}
+                        <div x-show="formType !== 'vision_screening'">
                             <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Vital Signs</h4>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
@@ -251,10 +263,84 @@
                             </div>
                         </div>
 
+                        {{-- Vision Screening Form --}}
+                        <div x-show="formType === 'vision_screening'" class="space-y-4 pt-2 border-t border-white/5">
+                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Vision Screening</h4>
+
+                            {{-- Student Information --}}
+                            <div class="bg-[#141414] border border-white/5 rounded-xl p-4 space-y-1">
+                                <p class="text-[10px] text-gray-500 uppercase font-medium mb-2">Student Information</p>
+                                <p class="text-xs text-gray-400 mb-2">Wears Glasses / Contacts</p>
+                                <div class="flex gap-4">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="visual_acuity[wears_correction]" value="yes" class="accent-[#1392EC]">
+                                        <span class="text-sm text-gray-300">Yes</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="visual_acuity[wears_correction]" value="no" class="accent-[#1392EC]">
+                                        <span class="text-sm text-gray-300">No</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {{-- Distance Vision --}}
+                            <div class="bg-[#141414] border border-white/5 rounded-xl p-4">
+                                <p class="text-[10px] text-gray-500 uppercase font-medium mb-3">Distance Vision</p>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[10px] text-gray-500 mb-1">Right Eye (OD)</label>
+                                        <input type="text" name="visual_acuity[od]" placeholder="e.g. 20/20" class="w-full bg-[#1A1A1A] border border-white/10 text-center rounded-lg text-sm text-white py-2 focus:outline-none focus:border-[#1392EC] transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-gray-500 mb-1">Left Eye (OS)</label>
+                                        <input type="text" name="visual_acuity[os]" placeholder="e.g. 20/20" class="w-full bg-[#1A1A1A] border border-white/10 text-center rounded-lg text-sm text-white py-2 focus:outline-none focus:border-[#1392EC] transition-colors">
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Color Vision --}}
+                            <div class="bg-[#141414] border border-white/5 rounded-xl p-4">
+                                <p class="text-[10px] text-gray-500 uppercase font-medium mb-2">Color Vision</p>
+                                <div class="flex gap-4">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="visual_acuity[color_vision]" value="pass" class="accent-[#1392EC]">
+                                        <span class="text-sm text-gray-300">Pass</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="visual_acuity[color_vision]" value="fail" class="accent-[#1392EC]">
+                                        <span class="text-sm text-gray-300">Fail</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {{-- Recommendation --}}
+                            <div class="bg-[#141414] border border-white/5 rounded-xl p-4">
+                                <p class="text-[10px] text-gray-500 uppercase font-medium mb-3">Recommendation</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
+                                        <input type="radio" name="visual_acuity[recommendation]" value="normal" class="accent-[#1392EC]">
+                                        <span class="text-sm text-gray-300">Normal</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
+                                        <input type="radio" name="visual_acuity[recommendation]" value="monitor" class="accent-[#1392EC]">
+                                        <span class="text-sm text-gray-300">Monitor</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
+                                        <input type="radio" name="visual_acuity[recommendation]" value="needs_glasses" class="accent-[#1392EC]">
+                                        <span class="text-sm text-gray-300">Needs Glasses</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
+                                        <input type="radio" name="visual_acuity[recommendation]" value="refer" class="accent-[#1392EC]">
+                                        <span class="text-sm text-gray-300">Refer to Eye Doctor</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
                         {{-- General Notes --}}
                         <div class="pt-2 border-t border-white/5">
-                            <label class="block text-xs text-gray-400 mb-1.5">Additional Notes (Private)</label>
-                            <textarea name="notes" rows="2" class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#1392EC] resize-none" placeholder="Staff notes..."></textarea>
+                            <label class="block text-xs text-gray-400 mb-1.5">Additional Notes <span class="text-gray-600">(optional)</span></label>
+                            <textarea name="notes" rows="2" class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#1392EC] resize-none" placeholder="Any notes for the student..."></textarea>
                         </div>
                     </form>
                 </div>

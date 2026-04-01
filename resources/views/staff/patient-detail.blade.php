@@ -59,6 +59,38 @@
                     @endforeach
                 </div>
                 @endif
+
+                @if($record->visual_acuity)
+                @php
+                    $va = $record->visual_acuity;
+                    $vaLabels = [
+                        'wears_correction' => 'Wears Correction',
+                        'od'               => 'OD',
+                        'os'               => 'OS',
+                        'color_vision'     => 'Color Vision',
+                        'recommendation'   => 'Recommendation',
+                    ];
+                    $vaFormats = [
+                        'wears_correction' => fn($v) => ucfirst($v),
+                        'color_vision'     => fn($v) => ucfirst($v),
+                        'recommendation'   => fn($v) => ucwords(str_replace('_', ' ', $v)),
+                    ];
+                @endphp
+                <div class="mt-3 flex flex-wrap gap-2">
+                    @foreach($vaLabels as $key => $label)
+                    @if(!empty($va[$key]))
+                    <span class="px-2 py-1 bg-white/5 rounded text-[10px] text-gray-400">
+                        <span class="text-gray-500">{{ $label }}:</span>
+                        {{ isset($vaFormats[$key]) ? $vaFormats[$key]($va[$key]) : $va[$key] }}
+                    </span>
+                    @endif
+                    @endforeach
+                </div>
+                @endif
+
+                @if($record->notes)
+                <p class="text-sm text-gray-300 mt-1"><span class="text-gray-500">Notes:</span> {{ $record->notes }}</p>
+                @endif
             </div>
             @endforeach
         </div>

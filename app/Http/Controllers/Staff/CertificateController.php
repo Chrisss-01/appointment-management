@@ -19,7 +19,7 @@ class CertificateController extends Controller
     public function index(Request $request)
     {
         $status = $request->get('status', 'pending');
-        $user = $request->user();
+        $search = $request->get('search');
 
         $query = CertificateRequest::with(['student', 'certificateType', 'documents']);
 
@@ -27,9 +27,16 @@ class CertificateController extends Controller
             $query->where('status', $status);
         }
 
+        if ($search) {
+            $query->whereHas('student', fn($q) =>
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('student_id', 'like', "%{$search}%")
+            );
+        }
+
         $certificateRequests = $query->orderByDesc('created_at')->paginate(15);
 
-        return view('staff.certificate-requests', compact('certificateRequests', 'status'));
+        return view('staff.certificate-requests', compact('certificateRequests', 'status', 'search'));
     }
 
     /**
@@ -39,6 +46,7 @@ class CertificateController extends Controller
     {
         $certificateRequest->load([
             'student',
+            'student.medicalRecords' => fn($q) => $q->orderByDesc('created_at'),
             'certificateType.requiredDocuments',
             'documents.typeDocument',
             'verifiedByUser',

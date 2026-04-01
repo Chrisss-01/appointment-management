@@ -99,17 +99,33 @@ class AppointmentController extends Controller
 
         if ($filter === 'today') {
             $query->whereDate('date', today());
+        } elseif ($filter === 'missed') {
+            $query->whereDate('date', '<', today());
         } else {
             // "Upcoming" = today + future
             $query->whereDate('date', '>=', today());
         }
 
-        $appointments = $query->orderBy('date')
-            ->orderBy('queue_number')
-            ->orderBy('start_time')
-            ->get(); // Using get() instead of paginate for the list view
+        // For missed, show most recent first; otherwise chronological
+        if ($filter === 'missed') {
+            $query->orderByDesc('date')
+                ->orderBy('queue_number')
+                ->orderBy('start_time');
+        } else {
+            $query->orderBy('date')
+                ->orderBy('queue_number')
+                ->orderBy('start_time');
+        }
 
-        return view('staff.record-visits', compact('appointments', 'filter'));
+        $appointments = $query->get();
+
+        // Count missed appointments for badge (shown on all tabs)
+        $missedCount = Appointment::where('staff_id', $request->user()->id)
+            ->where('status', 'approved')
+            ->whereDate('date', '<', today())
+            ->count();
+
+        return view('staff.record-visits', compact('appointments', 'filter', 'missedCount'));
     }
 
     /**
@@ -173,13 +189,24 @@ class AppointmentController extends Controller
                 'prescription' => 'nullable|string|max:1000',
                 'visual_acuity' => 'nullable|array',
             ]);
+        } elseif ($formType === 'vision_screening') {
+            // Vision screening has no vital signs or consultation text fields
+            $rules = [
+                'notes' => 'nullable|string|max:2000',
+                'visual_acuity' => 'nullable|array',
+                'visual_acuity.wears_correction' => 'nullable|in:yes,no',
+                'visual_acuity.od' => 'nullable|string|max:20',
+                'visual_acuity.os' => 'nullable|string|max:20',
+                'visual_acuity.color_vision' => 'nullable|in:pass,fail',
+                'visual_acuity.recommendation' => 'nullable|in:normal,monitor,needs_glasses,refer',
+            ];
         }
 
         $validated = $request->validate($rules);
 
         // Create the medical record
         $recordType = match($formType) {
-            'standard_consultation', 'eye_checkup' => 'consultation',
+            'standard_consultation', 'eye_checkup', 'vision_screening' => 'consultation',
             default => 'general'
         };
 

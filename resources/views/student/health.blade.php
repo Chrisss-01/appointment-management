@@ -72,12 +72,47 @@
                 @endif
             </div>
 
+            @if($record->notes)
+            <div class="mt-3 ml-13">
+                <span class="text-[10px] text-gray-500 uppercase font-medium">Note from Clinic</span>
+                <p class="text-sm text-gray-300 mt-0.5">{{ $record->notes }}</p>
+            </div>
+            @endif
+
             @if($record->vital_signs)
             <div class="mt-3 ml-13 flex flex-wrap gap-3">
                 @foreach($record->vital_signs as $key => $val)
                 @if($val)
                 <span class="px-2.5 py-1 bg-white/5 rounded-lg text-xs text-gray-400">
                     <span class="text-gray-500">{{ ucfirst(str_replace('_', ' ', $key)) }}:</span> {{ $val }}
+                </span>
+                @endif
+                @endforeach
+            </div>
+            @endif
+
+            @if($record->visual_acuity)
+            @php
+                $va = $record->visual_acuity;
+                $vaLabels = [
+                    'wears_correction' => 'Wears Correction',
+                    'od'               => 'Right Eye (OD)',
+                    'os'               => 'Left Eye (OS)',
+                    'color_vision'     => 'Color Vision',
+                    'recommendation'   => 'Recommendation',
+                ];
+                $vaFormats = [
+                    'wears_correction' => fn($v) => ucfirst($v),
+                    'color_vision'     => fn($v) => ucfirst($v),
+                    'recommendation'   => fn($v) => ucwords(str_replace('_', ' ', $v)),
+                ];
+            @endphp
+            <div class="mt-3 ml-13 flex flex-wrap gap-3">
+                @foreach($vaLabels as $key => $label)
+                @if(!empty($va[$key]))
+                <span class="px-2.5 py-1 bg-white/5 rounded-lg text-xs text-gray-400">
+                    <span class="text-gray-500">{{ $label }}:</span>
+                    {{ isset($vaFormats[$key]) ? $vaFormats[$key]($va[$key]) : $va[$key] }}
                 </span>
                 @endif
                 @endforeach

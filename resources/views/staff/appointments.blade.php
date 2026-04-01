@@ -71,7 +71,7 @@
                     </form>
                     <button onclick="showRejectModal({{ $apt->id }})" class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg transition-all">Reject</button>
                     @elseif($apt->status === 'approved')
-                    <a href="{{ route('staff.record-visits') }}" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium rounded-lg transition-all">
+                    <a href="{{ route('staff.record-visits') }}{{ $apt->date->isPast() && !$apt->date->isToday() ? '?filter=missed' : '' }}" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium rounded-lg transition-all">
                         Go to Record Visits →
                     </a>
                     @endif

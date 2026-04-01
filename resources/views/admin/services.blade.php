@@ -24,6 +24,7 @@
                     <select name="form_type" required class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
                         <option value="standard_consultation">Standard Consultation</option>
                         <option value="vital_signs_only">Vital Signs Only</option>
+                        <option value="vision_screening">Vision Screening</option>
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -83,6 +84,7 @@
                             <select name="form_type" required class="w-full bg-[#141414] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
                                 <option value="standard_consultation" {{ $service->form_type === 'standard_consultation' ? 'selected' : '' }}>Consultation</option>
                                 <option value="vital_signs_only" {{ $service->form_type === 'vital_signs_only' ? 'selected' : '' }}>Vital Signs Only</option>
+                                <option value="vision_screening" {{ $service->form_type === 'vision_screening' ? 'selected' : '' }}>Vision Screening</option>
                             </select>
                         </div>
                         <div class="w-14">

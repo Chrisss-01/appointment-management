@@ -9,6 +9,7 @@ use App\Http\Controllers\Staff\AppointmentController as StaffAppointment;
 use App\Http\Controllers\Staff\PatientController;
 use App\Http\Controllers\Staff\ClinicTaskController;
 use App\Http\Controllers\Staff\CertificateController as StaffCertificate;
+use App\Http\Controllers\Staff\AnnouncementController as StaffAnnouncement;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ServiceController;
@@ -93,7 +94,11 @@ Route::middleware(['auth', 'role:student', 'check.onboarding'])->prefix('student
 
 Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/dashboard', [StaffDashboard::class, 'index'])->name('dashboard');
-    Route::get('/announcements', [StaffDashboard::class, 'announcements'])->name('announcements');
+    Route::get('/announcements', [StaffAnnouncement::class, 'index'])->name('announcements');
+    Route::post('/announcements', [StaffAnnouncement::class, 'store'])->name('announcements.store');
+    Route::put('/announcements/{announcement}', [StaffAnnouncement::class, 'update'])->name('announcements.update');
+    Route::patch('/announcements/{announcement}/toggle', [StaffAnnouncement::class, 'togglePublish'])->name('announcements.toggle');
+    Route::delete('/announcements/{announcement}', [StaffAnnouncement::class, 'destroy'])->name('announcements.destroy');
     Route::get('/profile', [StaffDashboard::class, 'profile'])->name('profile');
     Route::put('/profile', [StaffDashboard::class, 'updateProfile'])->name('profile.update');
 

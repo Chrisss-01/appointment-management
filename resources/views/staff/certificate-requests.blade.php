@@ -12,6 +12,22 @@
     <p class="text-sm text-gray-500 mt-1">Review and manage student certificate requests</p>
 </div>
 
+{{-- Search Bar --}}
+<form method="GET" action="{{ route('staff.certificate-requests') }}" class="mb-4">
+    <input type="hidden" name="status" value="{{ $status }}">
+    <div class="flex gap-2">
+        <div class="relative flex-1">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" style="font-size:18px;">search</span>
+            <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Search by student name or ID..."
+                   class="w-full bg-[#1A1A1A] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+        </div>
+        <button type="submit" class="px-4 py-2.5 bg-[#1392EC] text-white text-sm font-medium rounded-xl hover:bg-[#1392EC]/90 transition-all">Search</button>
+        @if($search)
+            <a href="{{ route('staff.certificate-requests', ['status' => $status]) }}" class="px-4 py-2.5 bg-[#1A1A1A] border border-white/10 text-gray-400 text-sm font-medium rounded-xl hover:text-white transition-all">Clear</a>
+        @endif
+    </div>
+</form>
+
 {{-- Status Tabs --}}
 <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
     @php
@@ -24,7 +40,7 @@
         ];
     @endphp
     @foreach($tabs as $key => $tab)
-        <a href="{{ route('staff.certificate-requests', ['status' => $key]) }}"
+        <a href="{{ route('staff.certificate-requests', array_filter(['status' => $key, 'search' => $search])) }}"
            class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap
                   {{ $status === $key ? 'bg-[#1392EC]/10 text-[#1392EC] border border-[#1392EC]/20' : 'bg-[#1A1A1A] text-gray-400 border border-white/5 hover:border-white/10 hover:text-white' }}">
             <span class="material-symbols-outlined" style="font-size:16px;">{{ $tab['icon'] }}</span>
@@ -81,7 +97,7 @@
         </a>
         @endforeach
     </div>
-    <div class="px-5 py-3 border-t border-white/5">{{ $certificateRequests->appends(['status' => $status])->links() }}</div>
+    <div class="px-5 py-3 border-t border-white/5">{{ $certificateRequests->appends(array_filter(['status' => $status, 'search' => $search]))->links() }}</div>
     @endif
 </div>
 @endsection

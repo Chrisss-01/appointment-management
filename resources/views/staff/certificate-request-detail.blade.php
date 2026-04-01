@@ -100,6 +100,113 @@
                 </div>
             @endif
         </div>
+
+        {{-- Medical History --}}
+        @php $medicalRecords = $certificateRequest->student->medicalRecords; @endphp
+        <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl overflow-hidden">
+            <button type="button" id="med-history-toggle" class="w-full flex items-center justify-between px-6 py-4 text-left group">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#1392EC]" style="font-size:18px;">history</span>
+                    <h3 class="text-sm font-semibold text-white">Medical History</h3>
+                    @if($medicalRecords->isNotEmpty())
+                    <span class="px-2 py-0.5 text-[10px] font-medium bg-[#1392EC]/10 text-[#1392EC] border border-[#1392EC]/20 rounded-full">{{ $medicalRecords->count() }}</span>
+                    @endif
+                </div>
+                <span id="med-history-chevron" class="material-symbols-outlined text-gray-500 transition-transform duration-200" style="font-size:18px;">expand_more</span>
+            </button>
+
+            <div id="med-history-body" class="hidden">
+                <div class="px-6 pb-2 flex items-center justify-between border-t border-white/5 pt-3">
+                    <p class="text-xs text-gray-500">Showing all records for this student</p>
+                    <a href="{{ route('staff.patients.show', $certificateRequest->student) }}" class="text-xs text-[#1392EC] hover:underline flex items-center gap-1">
+                        View Full Profile
+                        <span class="material-symbols-outlined" style="font-size:13px;">open_in_new</span>
+                    </a>
+                </div>
+
+                @if($medicalRecords->isEmpty())
+                <div class="px-6 py-8 text-center text-gray-500 text-sm">No medical records on file for this student.</div>
+                @else
+                <div class="divide-y divide-white/5 max-h-96 overflow-y-auto custom-scrollbar">
+                    @foreach($medicalRecords as $record)
+                    @php
+                        $serviceColor = $record->appointment?->service?->color;
+                        $fallbackColor = match($record->record_type) {
+                            'consultation' => '#1392EC',
+                            'dental'       => '#3B82F6',
+                            default        => '#F59E0B',
+                        };
+                        $finalColor = $serviceColor ?? $fallbackColor;
+                    @endphp
+                    <div class="px-6 py-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-medium" style="color: {{ $finalColor }};">
+                                {{ $record->service_name ?? (ucfirst($record->record_type) . ' Record') }}
+                            </span>
+                            <span class="text-[10px] text-gray-600">{{ $record->created_at->format('M d, Y') }}</span>
+                        </div>
+                        @if($record->chief_complaint)
+                        <p class="text-sm text-gray-300"><span class="text-gray-500">Complaint:</span> {{ $record->chief_complaint }}</p>
+                        @endif
+                        @if($record->diagnosis)
+                        <p class="text-sm text-gray-300 mt-1"><span class="text-gray-500">Diagnosis:</span> {{ $record->diagnosis }}</p>
+                        @endif
+                        @if($record->treatment)
+                        <p class="text-sm text-gray-300 mt-1"><span class="text-gray-500">Treatment:</span> {{ $record->treatment }}</p>
+                        @endif
+                        @if($record->prescription)
+                        <p class="text-sm text-gray-300 mt-1"><span class="text-gray-500">Prescription:</span> {{ $record->prescription }}</p>
+                        @endif
+
+                        @if($record->vital_signs)
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @foreach($record->vital_signs as $key => $val)
+                            @if($val)
+                            <span class="px-2 py-1 bg-white/5 rounded text-[10px] text-gray-400">
+                                <span class="text-gray-500">{{ ucfirst(str_replace('_', ' ', $key)) }}:</span> {{ $val }}
+                            </span>
+                            @endif
+                            @endforeach
+                        </div>
+                        @endif
+
+                        @if($record->visual_acuity)
+                        @php
+                            $va = $record->visual_acuity;
+                            $vaLabels = [
+                                'wears_correction' => 'Wears Correction',
+                                'od'               => 'OD',
+                                'os'               => 'OS',
+                                'color_vision'     => 'Color Vision',
+                                'recommendation'   => 'Recommendation',
+                            ];
+                            $vaFormats = [
+                                'wears_correction' => fn($v) => ucfirst($v),
+                                'color_vision'     => fn($v) => ucfirst($v),
+                                'recommendation'   => fn($v) => ucwords(str_replace('_', ' ', $v)),
+                            ];
+                        @endphp
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @foreach($vaLabels as $key => $label)
+                            @if(!empty($va[$key]))
+                            <span class="px-2 py-1 bg-white/5 rounded text-[10px] text-gray-400">
+                                <span class="text-gray-500">{{ $label }}:</span>
+                                {{ isset($vaFormats[$key]) ? $vaFormats[$key]($va[$key]) : $va[$key] }}
+                            </span>
+                            @endif
+                            @endforeach
+                        </div>
+                        @endif
+
+                        @if($record->notes)
+                        <p class="text-sm text-gray-300 mt-1"><span class="text-gray-500">Notes:</span> {{ $record->notes }}</p>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+        </div>
     </div>
 
     {{-- Actions Panel --}}
@@ -196,6 +303,18 @@
 
 @push('scripts')
 <script>
+// Medical history toggle
+const medHistoryToggle = document.getElementById('med-history-toggle');
+const medHistoryBody = document.getElementById('med-history-body');
+const medHistoryChevron = document.getElementById('med-history-chevron');
+
+medHistoryToggle?.addEventListener('click', () => {
+    const isHidden = medHistoryBody.classList.contains('hidden');
+    medHistoryBody.classList.toggle('hidden', !isHidden);
+    medHistoryChevron.style.transform = isHidden ? 'rotate(180deg)' : '';
+});
+
+// Reject button toggle
 const rejectBtn = document.getElementById('reject-btn');
 const rejectWrapper = document.getElementById('reject-reason-wrapper');
 const rejectForm = document.getElementById('reject-form');
