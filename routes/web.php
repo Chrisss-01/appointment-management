@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboard;
 use App\Http\Controllers\Student\AppointmentController as StudentAppointment;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboard;
@@ -31,6 +32,30 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'landing')->name('landing');
 
+// Mail diagnostic route (remove in production)
+Route::get('/mail-test/{email}', function (string $email) {
+    try {
+        \Illuminate\Support\Facades\Mail::to($email)->send(
+            new \App\Mail\SendOtpMail('123456')
+        );
+        return response()->json([
+            'status' => 'success',
+            'message' => "Test OTP email sent to {$email}",
+            'driver' => config('mail.default'),
+            'host' => config('mail.mailers.smtp.host'),
+            'port' => config('mail.mailers.smtp.port'),
+            'scheme' => config('mail.mailers.smtp.scheme'),
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'class' => get_class($e),
+            'driver' => config('mail.default'),
+        ], 500);
+    }
+})->where('email', '.*');
+
 // Public certificate verification
 Route::get('/certificates/verify/{certificateNumber}', [CertificateVerificationController::class, 'verify'])->name('certificates.verify');
 
@@ -40,6 +65,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
     Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
+    Route::get('/verify-otp', [OtpVerificationController::class, 'show'])->name('otp.show');
+    Route::post('/verify-otp', [OtpVerificationController::class, 'verify'])->name('otp.verify');
+    Route::post('/resend-otp', [OtpVerificationController::class, 'resend'])->name('otp.resend');
     Route::get('/staff/login', [AuthController::class, 'showStaffLoginForm'])->name('staff.login');
     Route::post('/staff/login', [AuthController::class, 'staffLogin'])->name('staff.login.submit');
 });
