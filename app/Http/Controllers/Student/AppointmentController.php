@@ -114,13 +114,23 @@ class AppointmentController extends Controller
      */
     public function myAppointments(Request $request)
     {
+        $status = $request->get('status', 'all');
+
         $appointments = Appointment::where('student_id', $request->user()->id)
+            ->when($status !== 'all', function ($q) use ($status) {
+                if ($status === 'closed') {
+                    $q->whereIn('status', ['cancelled', 'cancelled_by_staff', 'rejected']);
+                } else {
+                    $q->where('status', $status);
+                }
+            })
             ->with(['service', 'staff'])
             ->orderByDesc('date')
             ->orderByDesc('start_time')
-            ->paginate(15);
+            ->paginate(15)
+            ->appends(['status' => $status]);
 
-        return view('student.my-appointments', compact('appointments'));
+        return view('student.my-appointments', compact('appointments', 'status'));
     }
 
     /**
@@ -132,11 +142,15 @@ class AppointmentController extends Controller
             abort(403);
         }
 
-        if (!in_array($appointment->status, ['pending', 'approved'])) {
+        if ($appointment->status !== 'pending') {
             return back()->with('error', 'Cannot cancel this appointment.');
         }
 
-        $this->bookingService->cancelAppointment($appointment, $request->user()->id);
+        $validated = $request->validate([
+            'cancellation_reason' => 'required|string|max:500',
+        ]);
+
+        $this->bookingService->cancelAppointment($appointment, $request->user()->id, $validated['cancellation_reason']);
 
         return back()->with('success', 'Appointment cancelled successfully.');
     }

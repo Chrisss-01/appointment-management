@@ -49,7 +49,7 @@
             @else
             <div class="divide-y divide-white/5">
                 @foreach($appointments as $apt)
-                <div @click="openPanel({{ $apt->id }})" class="px-5 py-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group {{ $filter === 'missed' ? 'border-l-2 border-l-amber-500/50' : '' }}">
+                <div @click="openPanel({{ $apt->id }})" class="px-5 py-4 flex items-center gap-4 hover:bg-white/[0.03] transition-colors cursor-pointer group">
                     <div class="text-center shrink-0 w-12">
                         <span class="text-lg font-bold text-gray-400 group-hover:text-white transition-colors">
                             #{{ str_pad($apt->queue_number ?? 0, 2, '0', STR_PAD_LEFT) }}

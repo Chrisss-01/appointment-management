@@ -83,7 +83,7 @@ class Appointment extends Model
 
     public function scopeUpcoming($query)
     {
-        return $query->where('date', '>=', now()->toDateString())
+        return $query->where('date', '>', now()->toDateString())
                      ->whereIn('status', ['pending', 'approved']);
     }
 
@@ -130,9 +130,13 @@ class Appointment extends Model
         ]);
     }
 
-    public function cancel(): void
+    public function cancel(?string $reason = null): void
     {
-        $this->update(['status' => 'cancelled']);
+        $this->update([
+            'status' => 'cancelled',
+            'cancellation_reason' => $reason,
+            'cancelled_at' => now(),
+        ]);
         $this->generatedSlot?->markAsAvailable();
     }
 

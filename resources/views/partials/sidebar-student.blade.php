@@ -15,11 +15,6 @@
     <span class="nav-text text-sm">My Appointments</span>
 </a>
 
-<a href="{{ route('student.visit-history') }}" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl {{ request()->routeIs('student.visit-history') ? 'active' : 'text-gray-400' }}">
-    <span class="material-symbols-outlined nav-icon" style="font-size:20px;">history</span>
-    <span class="nav-text text-sm">Visit History</span>
-</a>
-
 <a href="{{ route('student.services') }}" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl {{ request()->routeIs('student.services*') ? 'active' : 'text-gray-400' }}">
     <span class="material-symbols-outlined nav-icon" style="font-size:20px;">medical_services</span>
     <span class="nav-text text-sm">Services</span>

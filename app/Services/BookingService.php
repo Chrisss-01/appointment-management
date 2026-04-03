@@ -85,10 +85,10 @@ class BookingService
     /**
      * Cancel an appointment and free up the slot.
      */
-    public function cancelAppointment(Appointment $appointment, int $userId): void
+    public function cancelAppointment(Appointment $appointment, int $userId, ?string $reason = null): void
     {
-        DB::transaction(function () use ($appointment, $userId) {
-            $appointment->cancel();
+        DB::transaction(function () use ($appointment, $userId, $reason) {
+            $appointment->cancel($reason);
 
             // Notify the other party
             $isStudent = $userId === $appointment->student_id;

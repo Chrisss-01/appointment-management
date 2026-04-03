@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AvailabilitySlot;
 use App\Models\GeneratedSlot;
+use App\Models\Notification;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -93,6 +94,14 @@ class SlotGenerationService
             foreach ($bookedSlots as $slot) {
                 if ($slot->appointment && in_array($slot->appointment->status, ['pending', 'approved'])) {
                     $slot->appointment->cancelByStaff($cancellationReason);
+
+                    Notification::send(
+                        $slot->appointment->student_id,
+                        'appointment_cancelled',
+                        'Appointment Cancelled by Staff',
+                        "Your appointment on {$slot->appointment->date->format('M d, Y')} at {$slot->appointment->start_time} has been cancelled by staff. Reason: {$cancellationReason}",
+                        ['appointment_id' => $slot->appointment->id]
+                    );
                 }
             }
 

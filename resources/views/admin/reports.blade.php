@@ -7,16 +7,35 @@
 <div x-data="{
     tab: 'overview',
     mode: '{{ $mode }}',
+    studentFilter: '{{ $studentFilter }}',
+    studentFilterValue: '{{ $studentFilterValue }}',
+    filterError: '',
     init() {
         this.$watch('mode', () => {
             // Reset visibility when mode changes
         });
+        this.$watch('studentFilter', () => {
+            this.studentFilterValue = '';
+            this.filterError = '';
+        });
+        this.$watch('studentFilterValue', () => {
+            this.filterError = '';
+        });
+    },
+    validateFilter() {
+        if (this.studentFilter !== 'all' && this.studentFilterValue === '') {
+            const labels = { department: 'department', program: 'program', year_level: 'year level' };
+            this.filterError = 'Please select a ' + (labels[this.studentFilter] || 'value') + '.';
+            return false;
+        }
+        this.filterError = '';
+        return true;
     }
 }">
 
 {{-- Period Filter --}}
 <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-5 mb-6">
-    <form action="{{ route('admin.reports') }}" method="GET">
+    <form action="{{ route('admin.reports') }}" method="GET" @submit.prevent="if(validateFilter()) $el.submit()">
         {{-- Mode Toggle --}}
         <div class="flex items-center gap-2 mb-4">
             <button type="button" @click="mode = 'monthly'" :class="mode === 'monthly' ? 'bg-[#1392EC] text-white' : 'bg-white/5 text-gray-400 hover:text-white'" class="px-4 py-2 text-xs font-medium rounded-lg transition-all">Monthly</button>
@@ -71,14 +90,129 @@
                 </div>
             </div>
 
+            {{-- Separator --}}
+            <div class="w-px h-10 bg-white/10 mx-1"></div>
+
+            {{-- Student Filter --}}
+            <div class="flex items-end gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5">Student Filter</label>
+                    <select x-model="studentFilter" class="bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                        <option value="all">All Students</option>
+                        <option value="department">Department</option>
+                        <option value="program">Program</option>
+                        <option value="year_level">Year Level</option>
+                    </select>
+                </div>
+
+                {{-- Department value --}}
+                <div x-show="studentFilter === 'department'" x-cloak>
+                    <label class="block text-xs text-gray-400 mb-1.5">Department <span class="text-red-400">*</span></label>
+                    <select x-model="studentFilterValue" :class="filterError && studentFilter === 'department' ? 'border-red-500' : 'border-white/10'" class="bg-[#141414] border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                        <option value="">Select Department</option>
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept }}">{{ $departmentLabels[strtolower($dept)] ?? ucfirst($dept) }}</option>
+                        @endforeach
+                    </select>
+                    <p x-show="filterError && studentFilter === 'department'" class="text-xs text-red-400 mt-1" x-text="filterError"></p>
+                </div>
+
+                {{-- Program value (searchable dropdown) --}}
+                <div x-show="studentFilter === 'program'" x-cloak x-data="{ open: false, search: '' }" class="relative">
+                    <label class="block text-xs text-gray-400 mb-1.5">Program <span class="text-red-400">*</span></label>
+                    <button type="button" @click="open = !open" :class="filterError && studentFilter === 'program' ? 'border-red-500' : 'border-white/10'" class="bg-[#141414] border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC] w-full text-left flex items-center justify-between gap-2 min-w-[220px]">
+                        <span x-text="studentFilterValue ? studentFilterValue.toUpperCase() : 'Select Program'" :class="studentFilterValue ? 'text-white' : 'text-gray-400'"></span>
+                        <span class="material-symbols-outlined text-base text-gray-400" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s;">expand_more</span>
+                    </button>
+                    <div x-show="open" @click.away="open = false" x-cloak class="absolute z-50 mt-1 w-full min-w-[280px] bg-[#141414] border border-white/10 rounded-xl shadow-xl overflow-hidden">
+                        <div class="p-2 border-b border-white/5">
+                            <input type="text" x-model="search" placeholder="Search programs..." @click.stop class="w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                        </div>
+                        <div class="max-h-60 overflow-y-auto">
+                            @foreach($programsByDepartment as $deptKey => $deptPrograms)
+                            @php $deptLabel = $departmentLabels[strtolower($deptKey)] ?? ucfirst($deptKey); @endphp
+                            <template x-if="[{{ collect($deptPrograms)->map(fn($p) => "'" . strtolower($p) . "'")->implode(',') }}].some(p => p.includes(search.toLowerCase()))">
+                                <div>
+                                    <div class="px-3 py-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider bg-white/[0.02]">{{ $deptLabel }}</div>
+                                    @foreach($deptPrograms as $prog)
+                                    <button type="button" x-show="'{{ strtolower($prog) }}'.includes(search.toLowerCase())" @click="$dispatch('input'); studentFilterValue = '{{ $prog }}'; open = false; search = '';" class="w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors" :class="studentFilterValue === '{{ $prog }}' ? 'text-[#1392EC] bg-[#1392EC]/5' : 'text-gray-300'">
+                                        {{ strtoupper($prog) }}
+                                    </button>
+                                    @endforeach
+                                </div>
+                            </template>
+                            @endforeach
+                        </div>
+                    </div>
+                    <p x-show="filterError && studentFilter === 'program'" class="text-xs text-red-400 mt-1" x-text="filterError"></p>
+                </div>
+
+                {{-- Year Level value --}}
+                <div x-show="studentFilter === 'year_level'" x-cloak>
+                    <label class="block text-xs text-gray-400 mb-1.5">Year Level <span class="text-red-400">*</span></label>
+                    <select x-model="studentFilterValue" :class="filterError && studentFilter === 'year_level' ? 'border-red-500' : 'border-white/10'" class="bg-[#141414] border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                        <option value="">Select Year Level</option>
+                        @foreach($yearLevels as $yl)
+                            <option value="{{ $yl['value'] }}">{{ $yl['label'] }}</option>
+                        @endforeach
+                    </select>
+                    <p x-show="filterError && studentFilter === 'year_level'" class="text-xs text-red-400 mt-1" x-text="filterError"></p>
+                </div>
+            </div>
+
+            <input type="hidden" name="student_filter" :value="studentFilter">
+            <input type="hidden" name="student_filter_value" :value="studentFilterValue">
+
             <button type="submit" class="px-5 py-2.5 bg-[#1392EC] hover:bg-[#1392EC]/80 text-white text-sm font-medium rounded-xl transition-all">
                 <span class="material-symbols-outlined text-base align-middle mr-1">filter_alt</span> Apply
             </button>
+
+            {{-- Download PDF --}}
+            <a :href="(() => {
+                let params = new URLSearchParams();
+                params.set('mode', mode);
+                if (mode === 'monthly') {
+                    let monthEl = document.querySelector('select[name=month]');
+                    let yearEl = document.querySelectorAll('select[name=year]')[0];
+                    if (monthEl) params.set('month', monthEl.value);
+                    if (yearEl) params.set('year', yearEl.value);
+                } else if (mode === 'yearly') {
+                    let yearEl = document.querySelectorAll('select[name=year]')[1] || document.querySelector('select[name=year]');
+                    if (yearEl) params.set('year', yearEl.value);
+                } else {
+                    let startEl = document.querySelector('input[name=start_date]');
+                    let endEl = document.querySelector('input[name=end_date]');
+                    if (startEl) params.set('start_date', startEl.value);
+                    if (endEl) params.set('end_date', endEl.value);
+                }
+                if (studentFilter !== 'all') {
+                    params.set('student_filter', studentFilter);
+                    params.set('student_filter_value', studentFilterValue);
+                }
+                return '{{ route('admin.reports.export-pdf') }}?' + params.toString();
+            })()"
+               class="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-xl transition-all border border-white/10 inline-flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-base">download</span> Download PDF
+            </a>
         </div>
 
         <p class="text-xs text-gray-500 mt-3">
             Showing data from <span class="text-gray-300">{{ \Carbon\Carbon::parse($startDate)->format('M d, Y') }}</span>
             to <span class="text-gray-300">{{ \Carbon\Carbon::parse($endDate)->format('M d, Y') }}</span>
+            @if($studentFilter !== 'all' && $studentFilterValue)
+                &middot;
+                <span class="text-[#1392EC]">
+                    Filtered by {{ $studentFilter === 'year_level' ? 'Year Level' : ucfirst($studentFilter) }}:
+                    @if($studentFilter === 'department')
+                        {{ $departmentLabels[strtolower($studentFilterValue)] ?? ucfirst($studentFilterValue) }}
+                    @elseif($studentFilter === 'program')
+                        {{ strtoupper($studentFilterValue) }}
+                    @else
+                        @php $ylLabel = collect($yearLevels)->firstWhere('value', $studentFilterValue); @endphp
+                        {{ $ylLabel ? $ylLabel['label'] : ucfirst(str_replace('-', ' ', $studentFilterValue)) }}
+                    @endif
+                </span>
+            @endif
         </p>
     </form>
 </div>
@@ -470,7 +604,8 @@
             </div>
 
             {{-- Department Distribution --}}
-            <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-6">
+            @if($studentFilter !== 'department')
+            <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-6 {{ $studentFilter === 'year_level' ? 'lg:col-span-2' : '' }}">
                 <h3 class="text-sm font-semibold text-white mb-4">By Department</h3>
                 @php
                     $deptColors = ['College of Education' => '#F59E0B', 'College of Business Administration' => '#10B981', 'College of Engineering, Technology & Architecture' => '#3B82F6', 'College of Criminal Justice Education' => '#EF4444', 'Senior High School' => '#8B5CF6'];
@@ -491,9 +626,11 @@
                     @endforeach
                 </div>
             </div>
+            @endif
 
             {{-- Year Level Distribution --}}
-            <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-6">
+            @if($studentFilter !== 'year_level')
+            <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-6 {{ $studentFilter === 'department' ? 'lg:col-span-2' : '' }}">
                 <h3 class="text-sm font-semibold text-white mb-4">By Year Level</h3>
                 @php $maxYl = $byYearLevel->max() ?: 1; $ylTotal = $byYearLevel->sum(); @endphp
                 <div class="space-y-3">
@@ -510,9 +647,11 @@
                     @endforeach
                 </div>
             </div>
+            @endif
         </div>
 
         {{-- Program Distribution (full width) --}}
+        @if($studentFilter !== 'program')
         <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-6 mt-6">
             <h3 class="text-sm font-semibold text-white mb-4">By Program</h3>
             @php $maxProg = $byProgram->max() ?: 1; $progTotal = $byProgram->sum(); @endphp
@@ -530,6 +669,7 @@
                 @endforeach
             </div>
         </div>
+        @endif
     @else
         <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-12 text-center">
             <span class="material-symbols-outlined text-4xl text-gray-600">group</span>

@@ -21,12 +21,16 @@ class AppointmentController extends Controller
     {
         $status = $request->get('status', 'pending');
 
+        $closedStatuses = ['cancelled', 'cancelled_by_staff', 'rejected', 'no_show'];
+
         $appointments = Appointment::where('staff_id', $request->user()->id)
-            ->when($status !== 'all', fn($q) => $q->where('status', $status))
+            ->when($status === 'closed', fn($q) => $q->whereIn('status', $closedStatuses))
+            ->when($status !== 'all' && $status !== 'closed', fn($q) => $q->where('status', $status))
             ->with(['student', 'service'])
             ->orderByDesc('date')
             ->orderByDesc('start_time')
-            ->paginate(15);
+            ->paginate(15)
+            ->appends(['status' => $status]);
 
         return view('staff.appointments', compact('appointments', 'status'));
     }
@@ -98,12 +102,19 @@ class AppointmentController extends Controller
             ->with(['student', 'service']);
 
         if ($filter === 'today') {
-            $query->whereDate('date', today());
+            $query->whereDate('date', today())
+                ->where('start_time', '>=', now()->format('H:i:s'));
         } elseif ($filter === 'missed') {
-            $query->whereDate('date', '<', today());
+            $query->where(function ($q) {
+                $q->whereDate('date', '<', today())
+                    ->orWhere(function ($q2) {
+                        $q2->whereDate('date', today())
+                            ->where('start_time', '<', now()->format('H:i:s'));
+                    });
+            });
         } else {
-            // "Upcoming" = today + future
-            $query->whereDate('date', '>=', today());
+            // "Upcoming" = future only (excludes today)
+            $query->whereDate('date', '>', today());
         }
 
         // For missed, show most recent first; otherwise chronological
@@ -122,7 +133,13 @@ class AppointmentController extends Controller
         // Count missed appointments for badge (shown on all tabs)
         $missedCount = Appointment::where('staff_id', $request->user()->id)
             ->where('status', 'approved')
-            ->whereDate('date', '<', today())
+            ->where(function ($q) {
+                $q->whereDate('date', '<', today())
+                    ->orWhere(function ($q2) {
+                        $q2->whereDate('date', today())
+                            ->where('start_time', '<', now()->format('H:i:s'));
+                    });
+            })
             ->count();
 
         return view('staff.record-visits', compact('appointments', 'filter', 'missedCount'));

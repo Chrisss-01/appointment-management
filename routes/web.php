@@ -66,7 +66,6 @@ Route::middleware(['auth', 'role:student'])->group(function () {
 Route::middleware(['auth', 'role:student', 'check.onboarding'])->prefix('student')->name('student.')->group(function () {
     Route::get('/dashboard', [StudentDashboard::class, 'index'])->name('dashboard');
     Route::get('/health', [StudentDashboard::class, 'health'])->name('health');
-    Route::get('/visit-history', [StudentDashboard::class, 'visitHistory'])->name('visit-history');
     Route::get('/announcements', [StudentDashboard::class, 'announcements'])->name('announcements');
     Route::get('/profile', [StudentDashboard::class, 'profile'])->name('profile');
     Route::put('/profile', [StudentDashboard::class, 'updateProfile'])->name('profile.update');
@@ -199,6 +198,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
     // Reports
+    Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports');
 });
 

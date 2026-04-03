@@ -9,9 +9,11 @@ use App\Models\CertificateType;
 use App\Models\MedicalRecord;
 use App\Models\Service;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ReportController extends Controller
 {
@@ -19,6 +21,71 @@ class ReportController extends Controller
      * Reports overview page.
      */
     public function index(Request $request)
+    {
+        $data = $this->getReportData($request);
+
+        return view('admin.reports', $data);
+    }
+
+    /**
+     * Export analytics report as PDF.
+     */
+    public function exportPdf(Request $request)
+    {
+        $data = $this->getReportData($request);
+
+        // Build human-readable filters summary
+        $filtersApplied = [];
+
+        if ($data['mode'] === 'monthly') {
+            $filtersApplied[] = 'Month: ' . Carbon::create(null, $data['selectedMonth'])->format('F') . ' ' . $data['selectedYear'];
+        } elseif ($data['mode'] === 'yearly') {
+            $filtersApplied[] = 'Year: ' . $data['selectedYear'];
+        } else {
+            $filtersApplied[] = 'Period: ' . Carbon::parse($data['startDate'])->format('M d, Y') . ' – ' . Carbon::parse($data['endDate'])->format('M d, Y');
+        }
+
+        if ($data['studentFilter'] !== 'all' && $data['studentFilterValue'] !== '') {
+            $filterLabel = match ($data['studentFilter']) {
+                'department' => 'Department: ' . ($data['departmentLabels'][strtolower($data['studentFilterValue'])] ?? ucfirst($data['studentFilterValue'])),
+                'program'    => 'Program: ' . strtoupper($data['studentFilterValue']),
+                'year_level' => 'Year Level: ' . ucfirst(str_replace('-', ' ', $data['studentFilterValue'])),
+                default      => '',
+            };
+            if ($filterLabel) {
+                $filtersApplied[] = $filterLabel;
+            }
+        }
+
+        $data['filtersApplied'] = $filtersApplied;
+        $data['generatedAt'] = Carbon::now()->format('F d, Y – h:i A');
+
+        $pdf = Pdf::loadView('admin.reports-pdf', $data);
+        $pdf->setPaper('A4', 'portrait');
+
+        // Build filename
+        $filenameParts = ['clinic-report'];
+        if ($data['mode'] === 'monthly') {
+            $filenameParts[] = $data['selectedYear'] . '-' . str_pad($data['selectedMonth'], 2, '0', STR_PAD_LEFT);
+        } elseif ($data['mode'] === 'yearly') {
+            $filenameParts[] = $data['selectedYear'];
+        } else {
+            $filenameParts[] = Carbon::parse($data['startDate'])->format('Y-m-d') . '_to_' . Carbon::parse($data['endDate'])->format('Y-m-d');
+        }
+
+        if ($data['studentFilter'] !== 'all' && $data['studentFilterValue'] !== '') {
+            $filenameParts[] = Str::slug($data['studentFilterValue']);
+        }
+
+        $filename = implode('-', $filenameParts) . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Gather all report/analytics data based on request filters.
+     */
+    private function getReportData(Request $request): array
     {
         // ── Period handling ──────────────────────────────────────
         $mode = $request->get('mode', 'monthly');
@@ -42,6 +109,51 @@ class ReportController extends Controller
         $selectedMonth = $request->get('month', $now->month);
         $selectedYear = $request->get('year', $now->year);
 
+        // ── Student filter ──────────────────────────────────────
+        $studentFilter = $request->get('student_filter', 'all');
+        $studentFilterValue = $request->get('student_filter_value', '');
+
+        $departmentLabels = [
+            'coed' => 'College of Education',
+            'cba'  => 'College of Business Administration',
+            'ceta' => 'College of Engineering, Technology & Architecture',
+            'ccje' => 'College of Criminal Justice Education',
+            'shs'  => 'Senior High School',
+        ];
+
+        $departments = collect(array_keys($departmentLabels));
+
+        $programsByDepartment = [
+            'coed' => ['BEED', 'BSED FIL', 'BSED ENG', 'BSED SOST'],
+            'cba'  => ['BS TM', 'BS HM', 'BSBA MM'],
+            'ccje' => ['BS CRIM'],
+            'ceta' => ['BS CS', 'BS EE', 'BS ME'],
+            'shs'  => ['HUMSS', 'STEM', 'ABM', 'GAS', 'TVL'],
+        ];
+        $programs = collect($programsByDepartment)->flatten()->sort()->values();
+
+        $yearLevels = collect([
+            ['value' => '1st-year', 'label' => '1st Year'],
+            ['value' => '2nd-year', 'label' => '2nd Year'],
+            ['value' => '3rd-year', 'label' => '3rd Year'],
+            ['value' => '4th-year', 'label' => '4th Year'],
+            ['value' => 'grade-11', 'label' => 'Grade 11'],
+            ['value' => 'grade-12', 'label' => 'Grade 12'],
+        ]);
+
+        $filteredStudentIds = null;
+        if ($studentFilter !== 'all' && $studentFilterValue !== '') {
+            $column = match ($studentFilter) {
+                'department' => 'department',
+                'program'    => 'program',
+                'year_level' => 'year_level',
+                default      => null,
+            };
+            if ($column) {
+                $filteredStudentIds = User::students()->where($column, $studentFilterValue)->pluck('id');
+            }
+        }
+
         // ── Appointment summary ─────────────────────────────────
         $appointments = Appointment::whereBetween('date', [$startDate, $endDate])->get();
 
@@ -49,6 +161,12 @@ class ReportController extends Controller
             $startDate . ' 00:00:00',
             $endDate . ' 23:59:59',
         ])->get();
+
+        // Apply student filter to collections
+        if ($filteredStudentIds !== null) {
+            $appointments = $appointments->whereIn('student_id', $filteredStudentIds)->values();
+            $certRequests = $certRequests->whereIn('student_id', $filteredStudentIds)->values();
+        }
 
         $certSummary = [
             'total'              => $certRequests->count(),
@@ -76,10 +194,8 @@ class ReportController extends Controller
         ];
 
         // ── By service ──────────────────────────────────────────
-        $byService = Service::all()->map(function ($service) use ($startDate, $endDate) {
-            $svcAppointments = Appointment::where('service_id', $service->id)
-                ->whereBetween('date', [$startDate, $endDate])
-                ->get();
+        $byService = Service::all()->map(function ($service) use ($appointments) {
+            $svcAppointments = $appointments->where('service_id', $service->id);
 
             $total = $svcAppointments->count();
             $completed = $svcAppointments->where('status', 'completed')->count();
@@ -93,10 +209,8 @@ class ReportController extends Controller
             ];
         });
 
-        $byCertType = CertificateType::all()->map(function ($certType) use ($startDate, $endDate) {
-            $reqs = CertificateRequest::where('certificate_type_id', $certType->id)
-                ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-                ->get();
+        $byCertType = CertificateType::all()->map(function ($certType) use ($certRequests) {
+            $reqs = $certRequests->where('certificate_type_id', $certType->id);
             $total     = $reqs->count();
             $completed = $reqs->where('status', 'approved')->count();
             return [
@@ -112,10 +226,8 @@ class ReportController extends Controller
         $byService = $byService->concat($byCertType)->values();
 
         // ── By staff ────────────────────────────────────────────
-        $byStaff = User::staff()->get()->map(function ($staff) use ($startDate, $endDate) {
-            $staffAppointments = Appointment::where('staff_id', $staff->id)
-                ->whereBetween('date', [$startDate, $endDate])
-                ->get();
+        $byStaff = User::staff()->get()->map(function ($staff) use ($appointments) {
+            $staffAppointments = $appointments->where('staff_id', $staff->id);
 
             return [
                 'staff' => $staff->name,
@@ -153,12 +265,13 @@ class ReportController extends Controller
         $completedAppointmentIds = $completedAppointments->pluck('id');
 
         // Top reasons — from appointment reason field (populated by presets)
-        $topReasons = $completedAppointments
-            ->filter(fn ($a) => !empty($a->reason))
-            ->groupBy(fn ($a) => mb_strtolower(trim($a->reason)))
-            ->map(fn ($group) => $group->count())
-            ->sortDesc()
-            ->take(10);
+        $topReasons = $this->topFiveWithOther(
+            $completedAppointments
+                ->filter(fn ($a) => !empty($a->reason))
+                ->groupBy(fn ($a) => mb_strtolower(trim($a->reason)))
+                ->map(fn ($group) => $group->count())
+                ->sortDesc()
+        );
 
         // Top diagnoses — from medical records of completed appointments
         $topDiagnoses = MedicalRecord::whereIn('appointment_id', $completedAppointmentIds)
@@ -171,31 +284,24 @@ class ReportController extends Controller
             ->get();
 
         // Top cert request purposes
-        $topCertReasons = $certRequests
-            ->filter(fn ($r) => !empty($r->purpose_type))
-            ->groupBy(function ($r) {
-                $label = ($r->purpose_type === 'other' && !empty($r->purpose_text))
-                    ? $r->purpose_text
-                    : $r->purpose_type;
-                return mb_strtolower(trim($label));
-            })
-            ->map(fn ($group) => $group->count())
-            ->sortDesc()
-            ->take(10);
+        $topCertReasons = $this->topFiveWithOther(
+            $certRequests
+                ->filter(fn ($r) => !empty($r->purpose_type))
+                ->groupBy(function ($r) {
+                    $label = ($r->purpose_type === 'other' && !empty($r->purpose_text))
+                        ? $r->purpose_text
+                        : $r->purpose_type;
+                    return mb_strtolower(trim($label));
+                })
+                ->map(fn ($group) => $group->count())
+                ->sortDesc()
+        );
 
         // ── Student demographics (distinct students with completed appointments) ──
         $servedStudentIds = $appointments->where('status', 'completed')->pluck('student_id')
             ->merge($certRequests->pluck('student_id'))
             ->unique();
         $servedStudents = User::whereIn('id', $servedStudentIds)->get();
-
-        $departmentLabels = [
-            'coed' => 'College of Education',
-            'cba' => 'College of Business Administration',
-            'ceta' => 'College of Engineering, Technology & Architecture',
-            'ccje' => 'College of Criminal Justice Education',
-            'shs' => 'Senior High School',
-        ];
 
         // By gender
         $byGender = $servedStudents->groupBy('sex')->map->count()->sortDesc();
@@ -224,15 +330,17 @@ class ReportController extends Controller
         })->map->count()->sortDesc();
 
         // By program
-        $byProgram = $servedStudents->groupBy(function ($student) {
-            return strtoupper($student->program ?? 'Unknown');
-        })->map->count()->sortDesc();
+        $byProgram = $this->topFiveWithOther(
+            $servedStudents->groupBy(function ($student) {
+                return strtoupper($student->program ?? 'Unknown');
+            })->map->count()->sortDesc()
+        );
 
         $completionRate = ($summary['total'] + $certSummary['total']) > 0
             ? round((($summary['completed'] + $certSummary['approved']) / ($summary['total'] + $certSummary['total'])) * 100)
             : 0;
 
-        return view('admin.reports', compact(
+        return compact(
             'summary',
             'certSummary',
             'completionRate',
@@ -251,7 +359,30 @@ class ReportController extends Controller
             'byAge',
             'byDepartment',
             'byYearLevel',
-            'byProgram'
-        ));
+            'byProgram',
+            'studentFilter',
+            'studentFilterValue',
+            'departments',
+            'programs',
+            'yearLevels',
+            'departmentLabels',
+            'programsByDepartment'
+        );
+    }
+
+    private function topFiveWithOther($data)
+    {
+        if ($data->count() <= 5) {
+            return $data;
+        }
+
+        $top = $data->take(5);
+        $otherSum = $data->slice(5)->sum();
+
+        if ($otherSum > 0) {
+            $top->put('Other', $otherSum);
+        }
+
+        return $top;
     }
 }
