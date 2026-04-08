@@ -354,9 +354,9 @@
                         <span class="material-symbols-outlined" :class="isSaving ? 'animate-spin' : ''" style="font-size:18px;" x-text="isSaving ? 'progress_activity' : 'save'"></span>
                         <span x-text="isSaving ? 'Saving...' : 'Save & Complete'"></span>
                     </button>
-                    <form :action="`/staff/appointments/${appointment?.id}/no-show`" method="POST" onsubmit="return confirm('Mark as No Show?')">
+                    <form :action="`/staff/appointments/${appointment?.id}/no-show`" method="POST">
                         @csrf @method('PATCH')
-                        <button type="submit" class="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium rounded-xl transition-all h-full cursor-pointer active:scale-[0.98]">
+                        <button type="button" @click="confirmAction($el.form, 'Mark No Show', 'Are you sure you want to mark this appointment as a No Show?')" class="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium rounded-xl transition-all h-full cursor-pointer active:scale-[0.98]">
                             No Show
                         </button>
                     </form>

@@ -106,9 +106,9 @@
                             <a href="{{ route('staff.record-visits') }}{{ $apt->date->isPast() && !$apt->date->isToday() ? '?filter=missed' : '' }}" class="text-xs text-gray-400 hover:text-gray-300 transition-colors">
                                 Record Visits →
                             </a>
-                            <form action="{{ route('staff.appointments.no-show', $apt) }}" method="POST" onsubmit="return confirm('Mark this appointment as No Show?')">
+                            <form action="{{ route('staff.appointments.no-show', $apt) }}" method="POST">
                                 @csrf @method('PATCH')
-                                <button class="px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-medium rounded-lg transition-all">Mark No Show</button>
+                                <button type="button" onclick="confirmAction(this.form, 'Mark No Show', 'Are you sure you want to mark this appointment as a No Show?')" class="px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-medium rounded-lg transition-all">Mark No Show</button>
                             </form>
                             @elseif(in_array($apt->status, ['cancelled', 'cancelled_by_staff', 'rejected']))
                             <button onclick="showReasonModal('{{ $statusLabel }}', '{{ addslashes($apt->status === 'rejected' ? $apt->rejection_reason : $apt->cancellation_reason) }}')" class="text-xs text-gray-400 hover:text-gray-300 transition-colors">

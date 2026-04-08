@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Student\OnboardingController;
 use App\Http\Controllers\Student\CertificateController as StudentCertificate;
 use App\Http\Controllers\CertificateVerificationController;
+use App\Http\Controllers\PublicPageController;
 use Illuminate\Support\Facades\Route;
 
 // ──────────────────────────────────────────────────────────────────
@@ -58,6 +59,13 @@ Route::get('/mail-test/{email}', function (string $email) {
 
 // Public certificate verification
 Route::get('/certificates/verify/{certificateNumber}', [CertificateVerificationController::class, 'verify'])->name('certificates.verify');
+
+// Public Legal Pages
+Route::get('/privacy-policy', [PublicPageController::class, 'privacy'])->name('legal.privacy');
+Route::get('/terms-of-service', [PublicPageController::class, 'terms'])->name('legal.terms');
+
+// Public Clinic Schedule
+Route::get('/clinic-schedule', [PublicPageController::class, 'schedule'])->name('public.schedule');
 
 // Auth routes (guest only)
 Route::middleware('guest')->group(function () {
@@ -148,7 +156,7 @@ Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->grou
     Route::patch('/appointments/{appointment}/reject', [StaffAppointment::class, 'reject'])->name('appointments.reject');
     Route::patch('/appointments/{appointment}/complete', [StaffAppointment::class, 'complete'])->name('appointments.complete');
     Route::patch('/appointments/{appointment}/no-show', [StaffAppointment::class, 'noShow'])->name('appointments.no-show');
-    
+
     // Clinical — Record Visits
     Route::get('/record-visits', [StaffAppointment::class, 'recordVisit'])->name('record-visits');
     Route::get('/record-visits/{appointment}/consultation', [StaffAppointment::class, 'showConsultation'])->name('record-visits.consultation');

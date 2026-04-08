@@ -16,6 +16,7 @@ class Service extends Model
         'description',
         'duration_minutes',
         'color',
+        'icon',
         'form_type',
         'is_active',
     ];

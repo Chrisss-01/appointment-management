@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,9 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'check.onboarding' => \App\Http\Middleware\CheckOnboarding::class,
         ]);
-        
-        $middleware->redirectGuestsTo('/login');
-        
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->is('student/services*')) {
+                session()->flash('auth_reason', 'Please log in to your student account to book an appointment.');
+            }
+            return '/login';
+        });
         $middleware->redirectUsersTo(function () {
             $user = auth()->user();
             if (!$user) return '/';

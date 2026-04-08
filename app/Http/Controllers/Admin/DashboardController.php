@@ -53,6 +53,19 @@ class DashboardController extends Controller
             'color' => $s->color,
         ]);
 
+        // Dynamically add Certificate Types to the distribution
+        $certificateTypes = \App\Models\CertificateType::active()->withCount(['certificateRequests' => function ($q) use ($thisMonth) {
+            $q->where('created_at', '>=', $thisMonth);
+        }])->get();
+
+        foreach ($certificateTypes as $type) {
+            $serviceDistribution->push([
+                'name' => $type->name . ' Request',
+                'count' => $type->certificate_requests_count,
+                'color' => $type->color,
+            ]);
+        }
+
         return view('admin.dashboard', compact(
             'totalStudents',
             'totalStaff',

@@ -83,9 +83,9 @@
                         </span>
                         @endif
 
-                        <form action="{{ route('staff.tasks.destroy', $task) }}" method="POST" onsubmit="return confirm('Delete this task?')">
+                        <form action="{{ route('staff.tasks.destroy', $task) }}" method="POST">
                             @csrf @method('DELETE')
-                            <button class="text-gray-600 hover:text-red-400 transition-colors">
+                            <button type="button" onclick="confirmAction(this.form, 'Delete Task', 'Are you sure you want to delete this task?')" class="text-gray-600 hover:text-red-400 transition-colors">
                                 <span class="material-symbols-outlined" style="font-size:16px;">close</span>
                             </button>
                         </form>

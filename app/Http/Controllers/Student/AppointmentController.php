@@ -32,8 +32,13 @@ class AppointmentController extends Controller
      */
     public function showService(Service $service)
     {
+        $activeAppointment = \App\Models\Appointment::where('student_id', request()->user()->id)
+            ->where('service_id', $service->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->first();
+
         $reasonPresets = $service->reasonPresets()->get();
-        return view('student.book-appointment', compact('service', 'reasonPresets'));
+        return view('student.book-appointment', compact('service', 'reasonPresets', 'activeAppointment'));
     }
 
     /**
@@ -43,22 +48,30 @@ class AppointmentController extends Controller
     {
         $request->validate(['date' => 'required|date|after_or_equal:today']);
 
-        $slots = GeneratedSlot::where('service_id', $service->id)
-            ->whereDate('date', $request->date)
+        $now = now();
+        $requestedDate = $request->date;
+
+        $query = GeneratedSlot::where('service_id', $service->id)
+            ->whereDate('date', $requestedDate)
             ->where('status', 'available')
             ->with('staff')
-            ->orderBy('start_time')
-            ->get()
-            ->map(function ($slot) {
-                return [
-                    'id' => $slot->id,
-                    'start_time' => $slot->start_time,
-                    'end_time' => $slot->end_time,
-                    'staff_name' => $slot->staff->name,
-                ];
-            });
+            ->orderBy('start_time');
 
-        return response()->json($slots);
+        // For today, exclude slots whose start_time has already passed
+        if ($requestedDate === $now->toDateString()) {
+            $query->where('start_time', '>', $now->format('H:i:s'));
+        }
+
+        $slots = $query->get()->map(function ($slot) {
+            return [
+                'id'         => $slot->id,
+                'start_time' => $slot->start_time,
+                'end_time'   => $slot->end_time,
+                'staff_name' => $slot->staff->name,
+            ];
+        });
+
+        return response()->json($slots)->header('Cache-Control', 'no-store, no-cache');
     }
 
     /**
@@ -66,21 +79,35 @@ class AppointmentController extends Controller
      */
     public function getAvailableDates(Service $service)
     {
+        $now = now();
+        $todayDate = $now->toDateString();
+        $currentTime = $now->format('H:i:s');
+
         $dates = GeneratedSlot::where('service_id', $service->id)
             ->where('status', 'available')
-            ->where('date', '>=', now()->toDateString())
+            ->where('date', '>=', $todayDate)
+            // For past dates (shouldn't exist due to above), skip.
+            // For today, only count slots that haven't started yet.
+            // For future dates, count all slots.
+            ->where(function ($q) use ($todayDate, $currentTime) {
+                $q->where('date', '>', $todayDate)
+                  ->orWhere(function ($q2) use ($todayDate, $currentTime) {
+                      $q2->where('date', $todayDate)
+                         ->where('start_time', '>', $currentTime);
+                  });
+            })
             ->selectRaw('date, COUNT(*) as slot_count')
             ->groupBy('date')
             ->orderBy('date')
             ->get()
             ->map(function ($item) {
                 return [
-                    'date' => $item->date->format('Y-m-d'),
+                    'date'       => $item->date->format('Y-m-d'),
                     'slot_count' => $item->slot_count,
                 ];
             });
 
-        return response()->json($dates);
+        return response()->json($dates)->header('Cache-Control', 'no-store, no-cache');
     }
 
     /**

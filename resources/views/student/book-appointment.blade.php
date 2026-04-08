@@ -17,6 +17,22 @@
     </div>
 </div>
 
+@if($activeAppointment)
+<div class="bg-[#1A1A1A] border border-orange-500/20 rounded-2xl p-8 text-center max-w-2xl mt-4">
+    <div class="w-16 h-16 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <span class="material-symbols-outlined text-orange-400" style="font-size:32px;">pending_actions</span>
+    </div>
+    <h3 class="text-xl font-semibold text-white mb-2">Active Appointment Exists</h3>
+    <p class="text-gray-400 text-sm mb-6 max-w-md mx-auto">
+        You already have an appointment request for <strong>{{ $service->name }}</strong> currently marked as <span class="text-orange-400 font-medium">{{ ucfirst($activeAppointment->status) }}</span>. 
+        Please wait for this appointment to be completed or resolved before booking another one for the same service.
+    </p>
+    <a href="{{ route('student.appointments') }}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-xl transition-colors border border-white/10">
+        View My Appointments
+        <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span>
+    </a>
+</div>
+@else
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
     {{-- Calendar --}}
     <div class="lg:col-span-3 bg-[#1A1A1A] border border-white/5 rounded-2xl p-6 lg:self-start">
@@ -44,7 +60,7 @@
 
         <div class="mt-4 flex items-center gap-3 text-xs text-gray-500">
             <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded bg-green-500"></span> Available
+                <span class="w-3 h-3 rounded" style="background-color: {{ $service->color }}"></span> Available
             </div>
             <div class="flex items-center gap-1.5">
                 <span class="w-3 h-3 rounded bg-gray-700"></span> No slots
@@ -67,7 +83,7 @@
 
             {{-- Reason --}}
             <div id="booking-form" class="hidden mt-4 pt-4 border-t border-white/5">
-                <label class="block text-xs text-gray-400 mb-2">Reason for visit (optional)</label>
+                <label class="block text-xs text-gray-400 mb-2">Reason for visit <span class="text-red-400">*</span></label>
                 @if(isset($reasonPresets) && $reasonPresets->count())
                 <select id="reason-preset" class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC] mb-2" onchange="toggleCustomReason(this)">
                     <option value="">Select a reason</option>
@@ -92,8 +108,10 @@
         </div>
     </div>
 </div>
+@endif
 
 @push('scripts')
+@if(!$activeAppointment)
 <script>
 (() => {
     const serviceId = {{ $service->id }};
@@ -110,15 +128,74 @@
     const bookingForm = document.getElementById('booking-form');
     const confirmBtn = document.getElementById('confirm-booking');
 
+    function resetBookingForm() {
+        selectedSlotId = null;
+        
+        // Reset reason preset
+        const reasonPreset = document.getElementById('reason-preset');
+        if (reasonPreset) {
+            reasonPreset.value = '';
+            reasonPreset.classList.remove('border-red-500', 'ring-1', 'ring-red-500/50');
+        }
+
+        // Reset custom reason textarea
+        const bookingReason = document.getElementById('booking-reason');
+        if (bookingReason) {
+            bookingReason.value = '';
+            bookingReason.classList.remove('border-red-500', 'ring-1', 'ring-red-500/50');
+            // Hide it if we have presets (default state)
+            if (reasonPreset) {
+                bookingReason.classList.add('hidden');
+            }
+        }
+
+        // Reset additional comments
+        const additionalComments = document.getElementById('booking-additional-comments');
+        if (additionalComments) {
+            additionalComments.value = '';
+        }
+
+        // Reset submit button
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> Confirm Booking';
+        }
+
+        // Hide booking form panel
+        bookingForm.classList.add('hidden');
+    }
+
     // Load available dates
     async function loadAvailableDates() {
         try {
-            const res = await fetch(`/student/services/${serviceId}/available-dates`);
+            // Cache-bust so the browser never serves a stale response
+            const res = await fetch(`/student/services/${serviceId}/available-dates?_t=${Date.now()}`);
             const dates = await res.json();
             availableDates = {};
             dates.forEach(d => { availableDates[d.date] = d.slot_count; });
+
+            // If today appears as available, immediately verify it still has
+            // bookable slots from the CLIENT's clock perspective.
+            // This catches any server-side timezone or cache drift.
+            const todayStr = getTodayString();
+            if (availableDates[todayStr]) {
+                try {
+                    const slotRes = await fetch(`/student/services/${serviceId}/available-slots?date=${todayStr}&_t=${Date.now()}`);
+                    const slots = await slotRes.json();
+                    if (!slots.length) {
+                        delete availableDates[todayStr];
+                    }
+                } catch (_) { /* non-critical, render as-is */ }
+            }
+
             renderCalendar();
         } catch(e) { console.error(e); }
+    }
+
+    // Returns today's date as YYYY-MM-DD in local time
+    function getTodayString() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
     function renderCalendar() {
@@ -152,7 +229,7 @@
                 classes += ' cursor-pointer hover:scale-105 text-white font-semibold';
                 html += `<div class="${classes}" style="background:${serviceColor}25; border: 1px solid ${serviceColor}40;" onclick="selectDate('${dateStr}')" data-date="${dateStr}">
                     ${d}
-                    <span class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-green-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    <span class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" style="background-color: ${serviceColor}"></span>
                 </div>`;
                 continue;
             } else {
@@ -167,9 +244,7 @@
 
     // Global function for onclick
     window.selectDate = async function(dateStr) {
-        selectedSlotId = null;
-        bookingForm.classList.add('hidden');
-        confirmBtn.disabled = true;
+        resetBookingForm();
 
         slotsTitle.textContent = new Date(dateStr + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
         slotsSubtitle.textContent = 'Loading available slots...';
@@ -187,7 +262,14 @@
 
             if (slots.length === 0) {
                 slotsSubtitle.textContent = 'No available slots';
-                slotsContainer.innerHTML = '<div class="text-center py-6 text-gray-600"><p class="text-sm">All slots are taken</p></div>';
+                slotsContainer.innerHTML = '<div class="text-center py-6 text-gray-600"><p class="text-sm">No bookable slots for this date</p></div>';
+
+                // Remove this date from the local cache so the calendar
+                // immediately stops showing it as blue/clickable.
+                if (availableDates[dateStr]) {
+                    delete availableDates[dateStr];
+                    renderCalendar();
+                }
                 return;
             }
 
@@ -228,6 +310,25 @@
     // Confirm booking
     confirmBtn?.addEventListener('click', async () => {
         if (!selectedSlotId) return;
+
+        // Validate reason is provided
+        const reason = getBookingReason();
+        if (!reason || !reason.trim()) {
+            const reasonPreset = document.getElementById('reason-preset');
+            const textarea = document.getElementById('booking-reason');
+            // Highlight the missing field
+            if (reasonPreset && (!reasonPreset.value || reasonPreset.value === '')) {
+                reasonPreset.classList.add('border-red-500', 'ring-1', 'ring-red-500/50');
+                reasonPreset.focus();
+                setTimeout(() => reasonPreset.classList.remove('border-red-500', 'ring-1', 'ring-red-500/50'), 2500);
+            } else if (textarea && !textarea.classList.contains('hidden') && !textarea.value.trim()) {
+                textarea.classList.add('border-red-500', 'ring-1', 'ring-red-500/50');
+                textarea.focus();
+                setTimeout(() => textarea.classList.remove('border-red-500', 'ring-1', 'ring-red-500/50'), 2500);
+            }
+            return;
+        }
+
         confirmBtn.disabled = true;
         confirmBtn.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>';
 
@@ -259,13 +360,17 @@
                     </div>`;
                 bookingForm.classList.add('hidden');
                 loadAvailableDates();
+                resetBookingForm();
+                
+                // Show success toast
+                Notify.success('Booking Confirmed!', 'Your appointment has been scheduled.');
             } else {
-                alert(data.message || 'Booking failed');
+                Notify.error('Booking Failed', data.message || 'Please check your input and try again.');
                 confirmBtn.disabled = false;
                 confirmBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> Confirm Booking';
             }
         } catch(e) {
-            alert('Something went wrong. Please try again.');
+            Notify.error('Error', 'Something went wrong. Please try again later.');
             confirmBtn.disabled = false;
             confirmBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> Confirm Booking';
         }
@@ -303,5 +408,6 @@ function getBookingReason() {
     return textarea.value;
 }
 </script>
+@endif
 @endpush
 @endsection

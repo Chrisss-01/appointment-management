@@ -19,6 +19,7 @@ class ServiceSeeder extends Seeder
                 'description' => 'General medical consultation for common illnesses, health concerns, and physical examination.',
                 'duration_minutes' => 15,
                 'color' => '#1392EC', // blue
+                'icon' => 'stethoscope',
                 'is_active' => true,
                 'form_type' => 'standard_consultation',
             ],
@@ -28,17 +29,19 @@ class ServiceSeeder extends Seeder
                 'description' => 'Dental check-up, consultation, and basic dental procedures.',
                 'duration_minutes' => 15,
                 'color' => '#A855F7', // purple
+                'icon' => 'dentistry',
                 'is_active' => true,
                 'form_type' => 'standard_consultation',
             ],
             [
-                'name' => 'Medical Certificate Request',
-                'slug' => 'medical-certificate-request',
-                'description' => 'Request for medical certificates for academic or personal purposes.',
+                'name' => 'Vision Screening',
+                'slug' => 'vision-screening',
+                'description' => 'Basic vision and eye health screening.',
                 'duration_minutes' => 15,
-                'color' => '#F59E0B', // amber
+                'color' => '#10B981', // emerald
+                'icon' => 'visibility',
                 'is_active' => true,
-                'form_type' => 'certificate_request',
+                'form_type' => 'vision_screening',
             ],
         ];
 

@@ -105,10 +105,9 @@
                                 </button>
                             </form>
                             {{-- Delete --}}
-                            <form action="{{ route('staff.announcements.destroy', $ann) }}" method="POST"
-                                  onsubmit="return confirm('Delete this announcement?')">
+                            <form action="{{ route('staff.announcements.destroy', $ann) }}" method="POST">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="text-gray-500 hover:text-red-400 transition-colors">
+                                <button type="button" @click.stop="confirmAction($el.form, 'Delete Announcement', 'Are you sure you want to delete this announcement? This action cannot be undone.')" class="text-gray-500 hover:text-red-400 transition-colors">
                                     <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
                                 </button>
                             </form>

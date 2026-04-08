@@ -25,6 +25,7 @@ class Appointment extends Model
         'rejection_reason',
         'cancellation_reason',
         'cancelled_at',
+        'completed_at',
         'queue_number',
     ];
 
@@ -34,6 +35,7 @@ class Appointment extends Model
             'date' => 'date',
             'queue_number' => 'integer',
             'cancelled_at' => 'datetime',
+            'completed_at' => 'datetime',
         ];
     }
 
@@ -127,6 +129,7 @@ class Appointment extends Model
         $this->update([
             'status' => 'completed',
             'staff_notes' => $notes,
+            'completed_at' => now(),
         ]);
     }
 

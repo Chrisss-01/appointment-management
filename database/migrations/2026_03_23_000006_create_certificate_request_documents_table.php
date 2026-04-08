@@ -11,7 +11,9 @@ return new class extends Migration
         Schema::create('certificate_request_documents', function (Blueprint $table) {
             $table->id();
             $table->foreignId('certificate_request_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('certificate_type_document_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('certificate_type_document_id')->nullable();
+            $table->foreign('certificate_type_document_id', 'cert_req_docs_cert_type_doc_fk')
+                  ->references('id')->on('certificate_type_documents')->nullOnDelete();
             $table->string('original_name');
             $table->string('file_path');
             $table->string('mime_type')->nullable();

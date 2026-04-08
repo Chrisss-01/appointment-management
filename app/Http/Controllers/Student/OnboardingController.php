@@ -126,6 +126,20 @@ class OnboardingController extends Controller
 
     public function showSuccess()
     {
-        return view('onboarding.success');
+        $onboardingIntent = session()->pull('onboarding_intent');
+        
+        // Determine the redirect URL and message
+        if ($onboardingIntent && str_contains($onboardingIntent, 'student/services')) {
+            $redirectUrl = $onboardingIntent;
+            $successMessage = "Your student profile is complete. Taking you to the booking page...";
+        } else {
+            $redirectUrl = route('student.dashboard');
+            $successMessage = "Your student profile is complete. Taking you to your home page...";
+        }
+
+        return view('onboarding.success', [
+            'redirectUrl' => $redirectUrl,
+            'successMessage' => $successMessage
+        ]);
     }
 }

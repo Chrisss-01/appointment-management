@@ -30,7 +30,7 @@
                 <!-- Buttons Row -->
                 <div class="flex flex-col w-full sm:w-auto sm:flex-row items-center gap-4">
                     <!-- Primary Button -->
-                    <a href="/appointments/create" 
+                    <a href="{{ route('student.services') }}" 
                        class="flex h-12 w-full sm:w-auto items-center justify-center rounded-lg bg-[#1392ec] px-8 text-base font-bold text-white transition-all duration-300 hover:bg-[#1180cf] shadow-[0_0_20px_-5px_rgba(19,146,236,0.4)] hover:shadow-[0_0_25px_-5px_rgba(19,146,236,0.6)]">
                         Book Appointment
                     </a>

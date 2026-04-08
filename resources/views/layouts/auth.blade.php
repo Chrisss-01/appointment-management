@@ -16,4 +16,4 @@
 <body class="min-h-screen bg-[#0F0F0F] text-white antialiased">
     @yield('content')
 </body>
-</html>
+</html>

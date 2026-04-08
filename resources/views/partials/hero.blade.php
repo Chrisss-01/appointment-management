@@ -21,7 +21,7 @@
             {{-- Buttons --}}
             <div class="reveal-item delay-200 opacity-0 translate-y-8 transition-all duration-700 ease-out flex flex-wrap gap-4 pt-2">
                 <a 
-                    href="{{ Route::has('appointments.create') ? route('appointments.create') : '/appointments/create' }}" 
+                    href="{{ route('student.services') }}" 
                     class="group relative flex items-center justify-center rounded-lg h-14 px-8 bg-[#1392ec] text-white text-base font-bold transition-all duration-300 shadow-lg hover:shadow-[0_0_40px_-5px_rgba(19,146,236,0.6)] hover:-translate-y-1 overflow-hidden"
                 >
                     <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer"></div>

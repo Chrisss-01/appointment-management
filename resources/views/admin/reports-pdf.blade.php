@@ -171,14 +171,12 @@
         </thead>
         <tbody>
             @foreach($byService as $svc)
-                @if($svc['total'] > 0)
                 <tr>
                     <td>{{ $svc['service'] }}@if(!empty($svc['is_certificate'])) <span style="color: #888; font-size: 9px;">(Certificate)</span>@endif</td>
                     <td class="text-center">{{ $svc['total'] }}</td>
                     <td class="text-center">{{ $svc['completed'] }}</td>
                     <td class="text-center">{{ $svc['completion_rate'] }}%</td>
                 </tr>
-                @endif
             @endforeach
         </tbody>
     </table>

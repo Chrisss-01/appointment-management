@@ -17,8 +17,24 @@
     </div>
 </div>
 
+@if($activeRequest)
+<div class="bg-[#1A1A1A] border border-orange-500/20 rounded-2xl p-8 text-center max-w-2xl mt-4">
+    <div class="w-16 h-16 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <span class="material-symbols-outlined text-orange-400" style="font-size:32px;">pending_actions</span>
+    </div>
+    <h3 class="text-xl font-semibold text-white mb-2">Active Request Exists</h3>
+    <p class="text-gray-400 text-sm mb-6 max-w-md mx-auto">
+        You already have a request for a <strong>{{ $certificateType->name }}</strong> currently marked as <span class="text-orange-400 font-medium">{{ ucwords(str_replace('_', ' ', $activeRequest->status)) }}</span>. 
+        Please wait for this request to be processed before submitting a new one for the same certificate.
+    </p>
+    <a href="{{ route('student.certificates.my') }}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-xl transition-colors border border-white/10">
+        View My Certificates
+        <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span>
+    </a>
+</div>
+@else
 <div class="max-w-2xl">
-    <form action="{{ route('student.certificates.request.submit', $certificateType) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form id="certificate-request-form" action="{{ route('student.certificates.request.submit', $certificateType) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
         @csrf
 
         {{-- Purpose --}}
@@ -78,10 +94,23 @@
         </div>
         @endif
 
+        {{-- Medical History --}}
+        <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-6">
+            <h3 class="text-sm font-semibold text-white mb-1">Medical History</h3>
+            <p class="text-xs text-gray-500 mb-4">Please provide any relevant past illnesses, surgeries, or conditions.</p>
+            <textarea name="medical_history" rows="3" class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#1392EC] resize-none" placeholder="Your medical history... (optional)">{{ old('medical_history') }}</textarea>
+            @error('medical_history')
+                <p class="text-xs text-red-400 mt-1">{{ $message }}</p>
+            @enderror
+        </div>
+
         {{-- Additional Notes --}}
         <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-6">
             <h3 class="text-sm font-semibold text-white mb-4">Additional Notes</h3>
             <textarea name="additional_notes" rows="3" class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#1392EC] resize-none" placeholder="Any additional information... (optional)">{{ old('additional_notes') }}</textarea>
+            @error('additional_notes')
+                <p class="text-xs text-red-400 mt-1">{{ $message }}</p>
+            @enderror
         </div>
 
         {{-- Submit --}}
@@ -91,8 +120,10 @@
         </button>
     </form>
 </div>
+@endif
 
 @push('scripts')
+@if(!$activeRequest)
 <script>
 function toggleOtherPurpose() {
     const select = document.getElementById('purpose-select');
@@ -111,12 +142,78 @@ function toggleOtherPurpose() {
 // Init on page load
 toggleOtherPurpose();
 
-// Prevent double-submit
-document.querySelector('form').addEventListener('submit', function () {
+// Handle Form Submission via AJAX
+const requestForm = document.getElementById('certificate-request-form');
+requestForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    
+    const form = this;
     const btn = document.getElementById('submit-btn');
+    const originalContent = btn.innerHTML;
+    
+    // Enter Loading State
     btn.disabled = true;
-    btn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Submitting...';
+    btn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Processing...';
+    
+    // Clear previous errors
+    form.querySelectorAll('.text-red-400.mt-1').forEach(el => el.remove());
+    form.querySelectorAll('.border-red-400').forEach(el => el.classList.remove('border-red-400'));
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            // Success Logic
+            Notify.success(result.message);
+            
+            // Reset Form
+            form.reset();
+            
+            // Reset "Other" purpose if needed
+            toggleOtherPurpose();
+            
+            // Scroll to top of form
+            form.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            // Validation or Server Errors
+            if (response.status === 422) {
+                // Handle Laravel Validation Errors
+                const errors = result.errors;
+                Object.keys(errors).forEach(key => {
+                    const input = form.querySelector(`[name="${key}"]`) || form.querySelector(`[name="${key.split('.')[0]}[${key.split('.')[1]}]"]`);
+                    if (input) {
+                        input.classList.add('border-red-400');
+                        const errorMsg = document.createElement('p');
+                        errorMsg.className = 'text-xs text-red-400 mt-1';
+                        errorMsg.textContent = errors[key][0];
+                        input.parentNode.appendChild(errorMsg);
+                    }
+                });
+                Notify.error('Validation Error', 'Please check the form for errors.');
+            } else {
+                Notify.error('Error', result.message || 'Something went wrong. Please try again.');
+            }
+        }
+    } catch (error) {
+        console.error('Submission Error:', error);
+        Notify.error('Submission Failed', 'A network error occurred. Please check your connection.');
+    } finally {
+        // Exit Loading State
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+    }
 });
 </script>
+@endif
 @endpush
 @endsection

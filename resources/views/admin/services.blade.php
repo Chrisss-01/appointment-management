@@ -4,6 +4,28 @@
 @section('sidebar') @include('partials.sidebar-admin') @endsection
 
 @section('content')
+
+@php
+$iconOptions = [
+    'medical_services' => 'Medical Cross',
+    'stethoscope' => 'Stethoscope',
+    'dentistry' => 'Tooth / Dental',
+    'visibility' => 'Eye / Vision',
+    'monitor_heart' => 'Heart Monitor',
+    'favorite' => 'Heart',
+    'vital_signs' => 'Vital Signs',
+    'prescriptions' => 'Prescription',
+    'vaccines' => 'Vaccine / Syringe',
+    'psychology' => 'Brain / Psychology',
+    'healing' => 'Healing',
+    'emergency' => 'Emergency',
+    'science' => 'Lab / Science',
+    'medication' => 'Pills / Medication',
+    'description' => 'Document / Form',
+    'calendar_month' => 'Calendar / Schedule',
+];
+@endphp
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     {{-- Add Service --}}
     <div class="lg:col-span-1">
@@ -27,14 +49,22 @@
                         <option value="vision_screening">Vision Screening</option>
                     </select>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-3 gap-3">
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1.5">Duration (min)</label>
+                        <label class="block text-xs text-gray-400 mb-1.5">Duration</label>
                         <input type="number" name="duration_minutes" value="15" min="5" max="60" required class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1.5">Color</label>
                         <input type="color" name="color" value="#1392EC" class="w-full h-11 bg-[#141414] border border-white/10 rounded-xl px-2 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5">Icon</label>
+                        <select name="icon" required class="w-full bg-[#141414] border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                            @foreach($iconOptions as $val => $label)
+                                <option value="{{ $val }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
                 <button type="submit" class="w-full py-3 bg-[#1392EC] hover:bg-[#1392EC]/80 text-white text-sm font-semibold rounded-xl transition-all">Add Service</button>
@@ -48,8 +78,8 @@
         <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl overflow-hidden" x-data="{ open: false }">
             {{-- Service Header --}}
             <div class="px-5 py-4 flex items-center gap-4 cursor-pointer" @click="open = !open">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: {{ $service->color }}15;">
-                    <span class="w-4 h-4 rounded" style="background: {{ $service->color }};"></span>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background: {{ $service->color }}15;">
+                    <span class="material-symbols-outlined" style="font-size:20px; color: {{ $service->color }};">{{ $service->icon }}</span>
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-white">{{ $service->name }}</p>
@@ -90,6 +120,14 @@
                         <div class="w-14">
                             <label class="block text-xs text-gray-500 mb-1">Color</label>
                             <input type="color" name="color" value="{{ $service->color }}" class="w-full h-9 bg-[#141414] border border-white/10 rounded-lg px-1 cursor-pointer">
+                        </div>
+                        <div class="w-32 min-w-[120px]">
+                            <label class="block text-xs text-gray-500 mb-1">Icon</label>
+                            <select name="icon" required class="w-full bg-[#141414] border border-white/10 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]">
+                                @foreach($iconOptions as $val => $label)
+                                    <option value="{{ $val }}" {{ $service->icon === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <label class="flex items-center gap-2 text-xs text-gray-400">
                             <input type="hidden" name="is_active" value="0">

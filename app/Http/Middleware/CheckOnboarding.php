@@ -19,6 +19,11 @@ class CheckOnboarding
 
         if ($user && $user->role === 'student') {
             if (!$user->department || !$user->program || !$user->year_level || !$user->student_id) {
+                // Persistent capture for intent if it exists (e.g., from login redirection)
+                if (session()->has('url.intended') && !session()->has('onboarding_intent')) {
+                    session(['onboarding_intent' => session('url.intended')]);
+                }
+                
                 return redirect()->route('onboarding.department');
             }
         }

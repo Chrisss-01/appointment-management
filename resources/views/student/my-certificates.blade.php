@@ -18,16 +18,45 @@
     </a>
 </div>
 
+{{-- Status Tabs --}}
+<div class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+    @php
+        $tabs = [
+            'pending' => ['label' => 'Pending', 'icon' => 'schedule'],
+            'documents_verified' => ['label' => 'Docs Verified', 'icon' => 'verified'],
+            'approved' => ['label' => 'Approved', 'icon' => 'check_circle'],
+            'rejected' => ['label' => 'Rejected', 'icon' => 'cancel'],
+            'all' => ['label' => 'All', 'icon' => 'list'],
+        ];
+    @endphp
+    @foreach($tabs as $key => $tab)
+        <a href="{{ route('student.certificates.my', ['status' => $key]) }}"
+           class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap
+                  {{ $status === $key ? 'bg-[#1392EC]/10 text-[#1392EC] border border-[#1392EC]/20' : 'bg-[#1A1A1A] text-gray-400 border border-white/5 hover:border-white/10 hover:text-white' }}">
+            <span class="material-symbols-outlined" style="font-size:16px;">{{ $tab['icon'] }}</span>
+            {{ $tab['label'] }}
+        </a>
+    @endforeach
+</div>
+
 <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl overflow-hidden">
     <div class="px-5 py-4 border-b border-white/5">
-        <h3 class="text-sm font-semibold text-white">All Certificate Requests</h3>
+        <h3 class="text-sm font-semibold text-white">
+            @if($status === 'all')
+                All Certificate Requests
+            @else
+                {{ $tabs[$status]['label'] }} Requests
+            @endif
+        </h3>
     </div>
 
     @if($certificates->isEmpty())
     <div class="px-5 py-12 text-center">
         <span class="material-symbols-outlined text-gray-600 mb-3" style="font-size:48px;">description</span>
-        <p class="text-gray-400 text-sm">No certificate requests yet</p>
-        <a href="{{ route('student.certificates.request') }}" class="text-xs text-[#1392EC] hover:text-[#1392EC]/80 mt-2 inline-block">Request one now →</a>
+        <p class="text-gray-400 text-sm">No {{ $status !== 'all' ? strtolower($tabs[$status]['label']) : '' }} certificate requests found</p>
+        @if($status === 'all')
+            <a href="{{ route('student.certificates.request') }}" class="text-xs text-[#1392EC] hover:text-[#1392EC]/80 mt-2 inline-block">Request one now →</a>
+        @endif
     </div>
     @else
     <div class="divide-y divide-white/5">
@@ -83,7 +112,7 @@
         </div>
         @endforeach
     </div>
-    <div class="px-5 py-3 border-t border-white/5">{{ $certificates->links() }}</div>
+    <div class="px-5 py-3 border-t border-white/5">{{ $certificates->appends(['status' => $status])->links() }}</div>
     @endif
 </div>
 @endsection

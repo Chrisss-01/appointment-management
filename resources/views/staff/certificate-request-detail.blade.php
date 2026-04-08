@@ -265,12 +265,10 @@
                 </form>
                 @endif
 
-                {{-- Approve (doctor only) --}}
                 @if(auth()->user()->isDoctor())
-                <form action="{{ route('staff.certificate-requests.approve', $certificateRequest) }}" method="POST">
+                <form action="{{ route('staff.certificate-requests.approve', $certificateRequest) }}" method="POST" id="approve-form">
                     @csrf @method('PATCH')
-                    <button type="submit" class="w-full py-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-sm font-medium rounded-xl transition-all flex items-center justify-center gap-2"
-                            onclick="return confirm('Approve this certificate and generate PDF?')">
+                    <button type="button" id="approve-btn" class="w-full py-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-sm font-medium rounded-xl transition-all flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined" style="font-size:16px;">check_circle</span>
                         Approve & Generate Certificate
                     </button>
@@ -312,6 +310,13 @@ medHistoryToggle?.addEventListener('click', () => {
     const isHidden = medHistoryBody.classList.contains('hidden');
     medHistoryBody.classList.toggle('hidden', !isHidden);
     medHistoryChevron.style.transform = isHidden ? 'rotate(180deg)' : '';
+});
+
+// Approve confirmation
+document.getElementById('approve-btn')?.addEventListener('click', () => {
+    Notify.confirm('Approve Certificate', 'Approve this certificate and generate PDF?').then(res => {
+        if(res.isConfirmed) document.getElementById('approve-form').submit();
+    });
 });
 
 // Reject button toggle

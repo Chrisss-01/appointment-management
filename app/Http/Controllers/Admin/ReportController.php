@@ -221,7 +221,7 @@ class ReportController extends Controller
                 'completion_rate' => $total > 0 ? round(($completed / $total) * 100) : 0,
                 'is_certificate'  => true,
             ];
-        })->filter(fn ($item) => $item['total'] > 0)->values();
+        })->values();
 
         $byService = $byService->concat($byCertType)->values();
 

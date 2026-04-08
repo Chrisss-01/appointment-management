@@ -60,6 +60,26 @@
                 <p class="text-[#9CA3AF]">Log in using your university email.</p>
             </div>
 
+            {{-- Info Alert --}}
+            @if (session('auth_reason'))
+                <div id="auth-info-alert" role="alert" class="reveal-item mb-6 flex items-start gap-3 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-xl px-4 py-3 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <span>{{ session('auth_reason') }}</span>
+                </div>
+            @endif
+
+            {{-- Error Alert --}}
+            @if ($errors->any())
+                <div id="auth-error-alert" role="alert" class="reveal-item mb-6 flex items-start gap-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <span>{{ $errors->first() }}</span>
+                </div>
+            @endif
+
+
+
             <!-- Form -->
             <form action="{{ route('login') }}" method="POST" class="space-y-6">
                 @csrf
@@ -73,8 +93,9 @@
                             name="email" 
                             id="email" 
                             placeholder="yourname@uv.edu.ph" 
+                            value="{{ old('email') }}"
                             required
-                            class="input-transition w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#1392EC] focus:border-[#1392EC]"
+                            class="input-transition w-full bg-[#141414] border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-1 {{ $errors->has('email') ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-white/10 focus:ring-[#1392EC] focus:border-[#1392EC]' }}"
                         >
                         <!-- Validation Tooltip -->
                         <div id="email-error" class="hidden absolute left-0 -bottom-6 text-xs text-red-500 font-medium flex items-center gap-1">

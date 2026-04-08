@@ -30,17 +30,16 @@ class BookAppointmentRequest extends FormRequest
                     }
 
                     $existing = \App\Models\Appointment::where('student_id', $this->user()->id)
-                        ->where('date', $slot->date)
                         ->where('service_id', $slot->service_id)
-                        ->whereNotIn('status', ['cancelled', 'rejected', 'no_show'])
+                        ->whereIn('status', ['pending', 'approved'])
                         ->exists();
 
                     if ($existing) {
-                        $fail('You already have an appointment for this service on this date.');
+                        $fail('You already have an active appointment request for this service.');
                     }
                 },
             ],
-            'reason' => 'nullable|string|max:500',
+            'reason' => 'required|string|max:500',
             'additional_comments' => 'nullable|string|max:1000',
         ];
     }
@@ -49,7 +48,8 @@ class BookAppointmentRequest extends FormRequest
     {
         return [
             'generated_slot_id.required' => 'Please select a time slot.',
-            'generated_slot_id.exists' => 'The selected time slot is invalid.',
+            'generated_slot_id.exists'   => 'The selected time slot is invalid.',
+            'reason.required'            => 'Please provide a reason for your visit.',
         ];
     }
 }

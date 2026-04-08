@@ -192,7 +192,7 @@ class AuthController extends Controller
     private function redirectByRole(User $user)
     {
         return match ($user->role) {
-            'student' => redirect()->route('student.dashboard'),
+            'student' => redirect()->intended(route('student.dashboard')),
             'staff' => redirect()->route('staff.dashboard'),
             'admin' => redirect()->route('admin.dashboard'),
             default => redirect()->route('landing'),

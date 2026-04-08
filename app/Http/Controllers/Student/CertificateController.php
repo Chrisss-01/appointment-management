@@ -27,9 +27,14 @@ class CertificateController extends Controller
      */
     public function requestForm(CertificateType $certificateType)
     {
+        $activeRequest = \App\Models\CertificateRequest::where('student_id', request()->user()->id)
+            ->where('certificate_type_id', $certificateType->id)
+            ->whereIn('status', ['pending', 'documents_verified'])
+            ->first();
+
         $certificateType->load(['requiredDocuments', 'purposePresets']);
 
-        return view('student.certificate-request-form', compact('certificateType'));
+        return view('student.certificate-request-form', compact('certificateType', 'activeRequest'));
     }
 
     /**
@@ -42,6 +47,7 @@ class CertificateController extends Controller
         $rules = [
             'purpose_type' => 'required|string|max:500',
             'purpose_text' => 'nullable|string|max:500|required_if:purpose_type,other',
+            'medical_history' => 'nullable|string|max:1000',
             'additional_notes' => 'nullable|string|max:1000',
         ];
 
@@ -56,6 +62,18 @@ class CertificateController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        // Active request guard: 1 active per type
+        $hasActiveRequest = CertificateRequest::where('student_id', $request->user()->id)
+            ->where('certificate_type_id', $certificateType->id)
+            ->whereIn('status', ['pending', 'documents_verified'])
+            ->exists();
+
+        if ($hasActiveRequest) {
+            return back()
+                ->withInput()
+                ->withErrors(['purpose_type' => 'You already have an active request for this certificate type.']);
+        }
 
         // Duplicate-submission guard: same student, same type, same purpose within 30 seconds
         $isDuplicate = CertificateRequest::where('student_id', $request->user()->id)
@@ -76,6 +94,7 @@ class CertificateController extends Controller
             'certificate_type_id' => $certificateType->id,
             'purpose_type' => $validated['purpose_type'],
             'purpose_text' => $validated['purpose_type'] === 'other' ? ($validated['purpose_text'] ?? null) : null,
+            'medical_history' => $validated['medical_history'] ?? null,
             'additional_notes' => $validated['additional_notes'] ?? null,
             'status' => 'pending',
         ]);
@@ -94,6 +113,14 @@ class CertificateController extends Controller
             }
         }
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Certificate request submitted successfully!',
+                'redirect_url' => route('student.certificates.my')
+            ]);
+        }
+    
         return redirect()->route('student.certificates.my')
             ->with('success', 'Certificate request submitted successfully!');
     }
@@ -103,12 +130,19 @@ class CertificateController extends Controller
      */
     public function myCertificates(Request $request)
     {
-        $certificates = CertificateRequest::where('student_id', $request->user()->id)
-            ->with('certificateType')
-            ->orderByDesc('created_at')
-            ->paginate(15);
+        $status = $request->get('status', 'all');
 
-        return view('student.my-certificates', compact('certificates'));
+        $query = CertificateRequest::where('student_id', $request->user()->id)
+            ->with('certificateType')
+            ->orderByDesc('created_at');
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $certificates = $query->paginate(15);
+
+        return view('student.my-certificates', compact('certificates', 'status'));
     }
 
     /**

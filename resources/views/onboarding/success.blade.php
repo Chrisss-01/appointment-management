@@ -50,7 +50,7 @@
 
         <!-- Subtitle -->
         <p class="reveal-item text-[#94A3B8] text-lg leading-relaxed mb-12" style="transition-delay: 200ms;">
-            Your student profile is complete. Taking you to your home page...
+            {{ $successMessage }}
         </p>
 
         <!-- Loading Dots -->
@@ -63,7 +63,7 @@
         <!-- Fallback Link -->
         <p class="reveal-item text-xs text-[#64748B]" style="transition-delay: 400ms;">
             If you are not redirected, go to 
-            <a href="{{ route('student.dashboard') }}" class="text-[#94A3B8] hover:text-white underline decoration-[#94A3B8]/30 hover:decoration-white/50 underline-offset-4 transition-all duration-200">Home</a>
+            <a href="{{ $redirectUrl }}" class="text-[#94A3B8] hover:text-white underline decoration-[#94A3B8]/30 hover:decoration-white/50 underline-offset-4 transition-all duration-200">Home</a>
         </p>
 
     </div>
@@ -85,8 +85,8 @@
 
         // 2. Redirect Logic
         setTimeout(() => {
-            // Redirect to dashboard after 2 seconds
-            window.location.href = "{{ route('student.dashboard') }}";
+            // Redirect after 2 seconds
+            window.location.href = "{{ $redirectUrl }}";
         }, 2000);
     });
 </script>

@@ -32,8 +32,8 @@ class DashboardController extends Controller
             ->count();
 
         $todayCompleted = Appointment::where('staff_id', $user->id)
-            ->where('date', $today)
             ->where('status', 'completed')
+            ->whereDate('completed_at', $today)
             ->count();
 
         $availableSlotsToday = GeneratedSlot::where('staff_id', $user->id)

@@ -17,6 +17,7 @@ class CertificateRequest extends Model
         'certificate_number',
         'purpose_type',
         'purpose_text',
+        'medical_history',
         'additional_notes',
         'status',
         'rejection_reason',

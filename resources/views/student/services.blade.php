@@ -17,13 +17,7 @@
     <a href="{{ route('student.services.show', $service) }}" class="group bg-[#1A1A1A] border border-white/5 rounded-2xl p-6 card-hover block">
         <div class="flex items-start justify-between mb-4">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: {{ $service->color }}15;">
-                @if($service->slug === 'medical-consultation')
-                    <span class="material-symbols-outlined" style="font-size:24px; color:{{ $service->color }};">stethoscope</span>
-                @elseif($service->slug === 'dental-consultation')
-                    <span class="material-symbols-outlined" style="font-size:24px; color:{{ $service->color }};">dentistry</span>
-                @else
-                    <span class="material-symbols-outlined" style="font-size:24px; color:{{ $service->color }};">description</span>
-                @endif
+                <span class="material-symbols-outlined" style="font-size:24px; color:{{ $service->color }};">{{ $service->icon ?? 'medical_services' }}</span>
             </div>
             <span class="material-symbols-outlined text-gray-600 group-hover:text-[#1392EC] transition-colors" style="font-size:20px;">arrow_forward</span>
         </div>
