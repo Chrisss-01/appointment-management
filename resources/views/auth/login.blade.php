@@ -106,7 +106,12 @@
 
                 <!-- Password -->
                 <div class="reveal-item space-y-2">
-                    <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+                    <div class="flex items-center justify-between">
+                        <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+                        <a href="{{ route('password.request') }}" class="text-xs font-medium text-[#1392EC] hover:text-[#1181d1] transition-colors focus:outline-none focus:underline">
+                            Forgot your password?
+                        </a>
+                    </div>
                     <div class="relative">
                         <input 
                             type="password" 

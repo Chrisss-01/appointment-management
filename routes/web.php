@@ -78,6 +78,14 @@ Route::middleware('guest')->group(function () {
     Route::post('/resend-otp', [OtpVerificationController::class, 'resend'])->name('otp.resend');
     Route::get('/staff/login', [AuthController::class, 'showStaffLoginForm'])->name('staff.login');
     Route::post('/staff/login', [AuthController::class, 'staffLogin'])->name('staff.login.submit');
+
+    // Password Reset
+    Route::get('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'sendResetLinkEmail'])
+        ->middleware('throttle:3,10') // 3 requests per 10 mins
+        ->name('password.email');
+    Route::get('/reset-password/{token}', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'reset'])->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');

@@ -88,21 +88,22 @@
                             type="email" 
                             name="email" 
                             id="email" 
-                            placeholder="staff@clinic.edu.ph" 
+                            placeholder="your.email@domain.com" 
                             value="{{ old('email') }}"
                             required
                             class="input-transition w-full bg-[#141414] border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-1 {{ $errors->has('email') ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-white/10 focus:ring-[#1392EC] focus:border-[#1392EC]' }}"
                         >
-                        <!-- Validation Error -->
-                        <div id="email-error" class="hidden absolute left-0 -bottom-6 text-xs text-red-500 font-medium flex items-center gap-1">
-                            <span>Please use your official university email (@uv.edu.ph).</span>
-                        </div>
                     </div>
                 </div>
 
                 <!-- Password -->
                 <div class="reveal-item space-y-2">
-                    <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+                    <div class="flex items-center justify-between">
+                        <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+                        <a href="{{ route('password.request') }}" class="text-xs font-medium text-[#1392EC] hover:text-[#1181d1] transition-colors focus:outline-none focus:underline">
+                            Forgot your password?
+                        </a>
+                    </div>
                     <div class="relative">
                         <input 
                             type="password" 
@@ -224,31 +225,16 @@
             });
         }
 
-        // 3. Email Validation
+        // 3. Form Validation
         const emailInput = document.getElementById('email');
-        const emailError = document.getElementById('email-error');
         const loginBtn = document.getElementById('loginBtn');
 
         function validateForm() {
-            const emailValue = emailInput.value.trim();
-            const isEmailMatch = emailValue.toLowerCase().endsWith('@uv.edu.ph');
+            const hasEmail = emailInput.value.trim().length > 0;
             const hasPassword = passwordInput.value.length > 0;
 
-            // Visual Email Validation
-            if (emailValue.length > 0 && !isEmailMatch) {
-                emailInput.classList.remove('border-white/10', 'focus:ring-[#1392EC]', 'focus:border-[#1392EC]');
-                emailInput.classList.add('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
-                emailInput.setAttribute('aria-invalid', 'true');
-                emailError.classList.remove('hidden');
-            } else {
-                emailInput.classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
-                emailInput.classList.add('border-white/10', 'focus:ring-[#1392EC]', 'focus:border-[#1392EC]');
-                emailInput.removeAttribute('aria-invalid');
-                emailError.classList.add('hidden');
-            }
-
             // Button State
-            if (isEmailMatch && hasPassword) {
+            if (hasEmail && hasPassword) {
                 loginBtn.disabled = false;
                 loginBtn.classList.remove('opacity-60', 'cursor-not-allowed');
                 loginBtn.classList.add('hover:bg-[#1392EC]/90', 'active:scale-[0.98]', 'shadow-lg', 'shadow-blue-500/20');
