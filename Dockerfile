@@ -61,14 +61,22 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
     && a2enmod rewrite headers
 
-# Fix "More than one MPM loaded" — php:8.3-apache ships mpm_event/mpm_worker/mpm_prefork
-# as static (built-in) modules, so a2dismod cannot remove them. Instead, we directly
-# manage the mods-enabled symlinks: remove any existing MPM .load symlinks and create
-# only the mpm_prefork ones so Apache sees exactly one MPM at startup.
+# Fix "More than one MPM loaded" — php:8.3-apache compiles mpm_event, mpm_worker, and
+# mpm_prefork as STATIC modules, so a2dismod and .load symlinks have no effect on them.
+# Apache decides which MPM is active based solely on which mpm_*.conf files are present
+# in mods-enabled. We therefore:
+#   1. Wipe every mpm_*.conf and mpm_*.load entry from mods-enabled (belt + suspenders).
+#   2. Write a clean mpm_prefork.conf into mods-available (overwrite whatever was there).
+#   3. Symlink only that one conf into mods-enabled — no .load file needed for static MPMs.
 RUN rm -f /etc/apache2/mods-enabled/mpm_*.load \
           /etc/apache2/mods-enabled/mpm_*.conf \
-    && ln -s /etc/apache2/mods-available/mpm_prefork.load \
-             /etc/apache2/mods-enabled/mpm_prefork.load \
+    && printf '<IfModule mpm_prefork_module>\n\
+    StartServers             5\n\
+    MinSpareServers          5\n\
+    MaxSpareServers         10\n\
+    MaxRequestWorkers      150\n\
+    MaxConnectionsPerChild   0\n\
+</IfModule>\n' > /etc/apache2/mods-available/mpm_prefork.conf \
     && ln -s /etc/apache2/mods-available/mpm_prefork.conf \
              /etc/apache2/mods-enabled/mpm_prefork.conf
 
