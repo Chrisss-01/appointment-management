@@ -15,29 +15,46 @@ RUN npm run build
 # ─── Stage 2: PHP application ─────────────────────────────────────────────────
 FROM php:8.3-apache AS app
 
-# Use the official PHP extension installer — handles ALL system deps automatically
-ADD --chmod=0755 https://github.com/mlocati/php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+# Install ALL system dependencies needed by our PHP extensions:
+#   libpng-dev        → gd (PNG support)
+#   libfreetype6-dev  → gd (font rendering)
+#   libjpeg-dev       → gd (JPEG support) — more portable than libjpeg62-turbo-dev
+#   libonig-dev       → mbstring
+#   libzip-dev        → zip
+#   libicu-dev        → intl (this was the missing dep in previous attempts)
+#   libxml2-dev       → xml / soap
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    unzip \
+    libpng-dev \
+    libfreetype6-dev \
+    libjpeg-dev \
+    libonig-dev \
+    libzip-dev \
+    libicu-dev \
+    libxml2-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install required PHP extensions (no manual apt-get juggling needed)
-RUN install-php-extensions \
-    gd \
-    pdo_mysql \
-    mbstring \
-    exif \
-    pcntl \
-    bcmath \
-    zip \
-    intl \
-    opcache
-
-# Install system tools needed at runtime
-RUN apt-get update && apt-get install -y git curl unzip \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Configure GD with freetype + jpeg, then install all extensions in one pass
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        pdo \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+        intl \
+        opcache
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Enable Apache modules and point document root to Laravel public/
+# Enable Apache rewrite + point document root to Laravel public/
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
@@ -46,28 +63,28 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 
 WORKDIR /var/www/html
 
-# Install PHP dependencies first for better Docker layer caching
+# Install PHP deps first for layer caching
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# Copy full application source
+# Copy full app source
 COPY . .
 
-# Overlay pre-built Vite assets from node stage
+# Overlay pre-built Vite assets
 COPY --from=node-builder /app/public/build ./public/build
 
-# Fix ownership and permissions
+# Fix permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Run Composer post-install hooks (service providers, package discovery)
+# Run Composer post-install hooks
 RUN composer run-script post-autoload-dump
 
-# Use PHP production settings
+# Use production PHP settings
 RUN cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
 
-# Copy and enable startup script
+# Startup entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
