@@ -1,5 +1,19 @@
 <?php
 
+// ⚠️ TEMPORARY DEBUG — REMOVE AFTER FIXING
+Route::get('/debug-mail', function () {
+    $result = ['mailer' => config('mail.default'), 'brevo_key' => config('services.brevo.key') ? '✅ SET (' . substr(config('services.brevo.key'), 0, 10) . '...)' : '❌ EMPTY', 'from' => config('mail.from.address')];
+    try {
+        \Illuminate\Support\Facades\Mail::raw('Brevo test', function ($msg) {
+            $msg->to('christeldalogdog02@gmail.com')->subject('Brevo Test');
+        });
+        $result['test'] = '✅ Sent!';
+    } catch (\Throwable $e) {
+        $result['test'] = '❌ ' . $e->getMessage();
+    }
+    return response()->json($result, 200, [], JSON_PRETTY_PRINT);
+});
+
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboard;
