@@ -12,7 +12,8 @@
         "laravel/tinker": "^2.10.1",
         "resend/resend-laravel": "^1.3",
         "simplesoftwareio/simple-qrcode": "^4.2",
-        "symfony/brevo-mailer": "^7.4"
+        "symfony/brevo-mailer": "^7.4",
+        "symfony/http-client": "^7.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
