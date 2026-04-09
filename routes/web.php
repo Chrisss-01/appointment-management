@@ -33,29 +33,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'landing')->name('landing');
 
-// Mail diagnostic route (remove in production)
-Route::get('/mail-test/{email}', function (string $email) {
-    try {
-        \Illuminate\Support\Facades\Mail::to($email)->send(
-            new \App\Mail\SendOtpMail('123456')
-        );
-        return response()->json([
-            'status' => 'success',
-            'message' => "Test OTP email sent to {$email}",
-            'driver' => config('mail.default'),
-            'host' => config('mail.mailers.smtp.host'),
-            'port' => config('mail.mailers.smtp.port'),
-            'scheme' => config('mail.mailers.smtp.scheme'),
-        ]);
-    } catch (\Throwable $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-            'class' => get_class($e),
-            'driver' => config('mail.default'),
-        ], 500);
-    }
-})->where('email', '.*');
+
 
 // Public certificate verification
 Route::get('/certificates/verify/{certificateNumber}', [CertificateVerificationController::class, 'verify'])->name('certificates.verify');
