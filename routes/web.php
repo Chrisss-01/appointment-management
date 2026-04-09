@@ -1,8 +1,5 @@
 <?php
 
-// Lightweight healthcheck endpoint for Railway — always returns 200
-Route::get('/health', fn () => response('OK', 200));
-
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboard;
