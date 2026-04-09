@@ -59,9 +59,18 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
-    && a2dismod mpm_event mpm_worker 2>/dev/null || true \
-    && a2enmod mpm_prefork \
     && a2enmod rewrite headers
+
+# Fix "More than one MPM loaded" — php:8.3-apache ships mpm_event/mpm_worker/mpm_prefork
+# as static (built-in) modules, so a2dismod cannot remove them. Instead, we directly
+# manage the mods-enabled symlinks: remove any existing MPM .load symlinks and create
+# only the mpm_prefork ones so Apache sees exactly one MPM at startup.
+RUN rm -f /etc/apache2/mods-enabled/mpm_*.load \
+          /etc/apache2/mods-enabled/mpm_*.conf \
+    && ln -s /etc/apache2/mods-available/mpm_prefork.load \
+             /etc/apache2/mods-enabled/mpm_prefork.load \
+    && ln -s /etc/apache2/mods-available/mpm_prefork.conf \
+             /etc/apache2/mods-enabled/mpm_prefork.conf
 
 WORKDIR /var/www/html
 
