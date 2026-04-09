@@ -28,6 +28,12 @@ class BookingService
                 throw new \Exception('This time slot is no longer available.');
             }
 
+            // Enforce minimum 30-minute booking lead time
+            $slotDateTime = \Carbon\Carbon::parse($slot->date->format('Y-m-d') . ' ' . $slot->start_time);
+            if ($slotDateTime->diffInMinutes(now(), false) > -30) {
+                throw new \Exception('This time slot cannot be booked. Appointments must be made at least 30 minutes in advance.');
+            }
+
             // Check for conflicting appointments
             $hasConflict = Appointment::where('student_id', $studentId)
                 ->where('date', $slot->date)

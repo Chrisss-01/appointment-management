@@ -51,15 +51,18 @@ class AppointmentController extends Controller
         $now = now();
         $requestedDate = $request->date;
 
+        // Minimum lead time: students must book at least 30 minutes in advance
+        $leadTimeCutoff = $now->copy()->addMinutes(30);
+
         $query = GeneratedSlot::where('service_id', $service->id)
             ->whereDate('date', $requestedDate)
             ->where('status', 'available')
             ->with('staff')
             ->orderBy('start_time');
 
-        // For today, exclude slots whose start_time has already passed
+        // For today, exclude slots that start within the next 30 minutes
         if ($requestedDate === $now->toDateString()) {
-            $query->where('start_time', '>', $now->format('H:i:s'));
+            $query->where('start_time', '>', $leadTimeCutoff->format('H:i:s'));
         }
 
         $slots = $query->get()->map(function ($slot) {
@@ -81,19 +84,20 @@ class AppointmentController extends Controller
     {
         $now = now();
         $todayDate = $now->toDateString();
-        $currentTime = $now->format('H:i:s');
+
+        // Minimum lead time: 30 minutes from now
+        $leadTimeCutoff = $now->copy()->addMinutes(30)->format('H:i:s');
 
         $dates = GeneratedSlot::where('service_id', $service->id)
             ->where('status', 'available')
             ->where('date', '>=', $todayDate)
-            // For past dates (shouldn't exist due to above), skip.
-            // For today, only count slots that haven't started yet.
-            // For future dates, count all slots.
-            ->where(function ($q) use ($todayDate, $currentTime) {
+            // For today, only count slots that start at least 30 min from now.
+            // For future dates, count all available slots.
+            ->where(function ($q) use ($todayDate, $leadTimeCutoff) {
                 $q->where('date', '>', $todayDate)
-                  ->orWhere(function ($q2) use ($todayDate, $currentTime) {
+                  ->orWhere(function ($q2) use ($todayDate, $leadTimeCutoff) {
                       $q2->where('date', $todayDate)
-                         ->where('start_time', '>', $currentTime);
+                         ->where('start_time', '>', $leadTimeCutoff);
                   });
             })
             ->selectRaw('date, COUNT(*) as slot_count')
