@@ -1,36 +1,5 @@
 <?php
 
-// ⚠️ TEMPORARY: Mail debug route — REMOVE after fixing!
-Route::get('/debug-mail', function () {
-    $config = [
-        'mailer' => config('mail.default'),
-        'host' => config('mail.mailers.smtp.host'),
-        'port' => config('mail.mailers.smtp.port'),
-        'scheme' => config('mail.mailers.smtp.scheme'),
-        'username' => config('mail.mailers.smtp.username') ? '✅ SET' : '❌ EMPTY',
-        'password' => config('mail.mailers.smtp.password') ? '✅ SET' : '❌ EMPTY',
-        'from_address' => config('mail.from.address'),
-        'from_name' => config('mail.from.name'),
-        'encryption_env' => env('MAIL_ENCRYPTION', '(not set)'),
-        'scheme_env' => env('MAIL_SCHEME', '(not set)'),
-    ];
-
-    $testResult = 'Not tested yet';
-    try {
-        \Illuminate\Support\Facades\Mail::raw('Test from Railway debug', function ($msg) {
-            $msg->to(config('mail.from.address'))->subject('Railway Mail Test');
-        });
-        $testResult = '✅ Email sent successfully!';
-    } catch (\Throwable $e) {
-        $testResult = '❌ ' . $e->getMessage();
-    }
-
-    return response()->json([
-        'config' => $config,
-        'test_result' => $testResult,
-    ], 200, [], JSON_PRETTY_PRINT);
-});
-
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboard;
