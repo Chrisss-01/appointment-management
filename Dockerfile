@@ -40,16 +40,16 @@ RUN apt-get update && apt-get install -y \
 # Configure GD with freetype + jpeg, then install all extensions in one pass
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
-        pdo \
-        pdo_mysql \
-        mbstring \
-        exif \
-        pcntl \
-        bcmath \
-        gd \
-        zip \
-        intl \
-        opcache
+    pdo \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    intl \
+    opcache
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -59,9 +59,19 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
-    && a2dismod mpm_event mpm_worker 2>/dev/null || true \
-    && a2enmod mpm_prefork \
     && a2enmod rewrite headers
+
+# Fix "More than one MPM loaded" — remove all MPM symlinks, enable only mpm_prefork
+RUN set -eux; \
+    echo "=== MPM BEFORE ==="; \
+    ls -la /etc/apache2/mods-enabled/mpm_* 2>/dev/null || true; \
+    rm -f /etc/apache2/mods-enabled/mpm_*.load; \
+    rm -f /etc/apache2/mods-enabled/mpm_*.conf; \
+    ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load; \
+    ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf; \
+    echo "=== MPM AFTER ==="; \
+    ls -la /etc/apache2/mods-enabled/mpm_*; \
+    apache2ctl configtest
 
 WORKDIR /var/www/html
 
