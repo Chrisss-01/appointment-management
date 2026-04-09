@@ -61,18 +61,6 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
     && a2enmod rewrite headers
 
-# Fix "More than one MPM loaded" — remove all MPM symlinks, enable only mpm_prefork
-RUN set -eux; \
-    echo "=== MPM BEFORE ==="; \
-    ls -la /etc/apache2/mods-enabled/mpm_* 2>/dev/null || true; \
-    rm -f /etc/apache2/mods-enabled/mpm_*.load; \
-    rm -f /etc/apache2/mods-enabled/mpm_*.conf; \
-    ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load; \
-    ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf; \
-    echo "=== MPM AFTER ==="; \
-    ls -la /etc/apache2/mods-enabled/mpm_*; \
-    apache2ctl configtest
-
 WORKDIR /var/www/html
 
 # Install PHP deps first for layer caching
