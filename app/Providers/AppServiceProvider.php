@@ -27,5 +27,18 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Gate::define('manage-availability', function (\App\Models\User $user) {
             return $user->isStaff() || $user->isAdmin();
         });
+
+        // Register Brevo (Sendinblue) mail transport — uses HTTP API, not SMTP
+        \Illuminate\Support\Facades\Mail::extend('brevo', function (array $config) {
+            $factory = new \Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory();
+
+            return $factory->create(
+                new \Symfony\Component\Mailer\Transport\Dsn(
+                    'brevo+api',
+                    'default',
+                    config('services.brevo.key')
+                )
+            );
+        });
     }
 }
