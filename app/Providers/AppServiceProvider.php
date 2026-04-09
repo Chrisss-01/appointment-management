@@ -19,6 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Railway/PaaS terminates SSL at the proxy — force HTTPS for all generated URLs
+        if (config('app.env') === 'production') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         \Illuminate\Support\Facades\Gate::define('manage-availability', function (\App\Models\User $user) {
             return $user->isStaff() || $user->isAdmin();
         });
