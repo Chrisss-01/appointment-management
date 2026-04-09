@@ -15,39 +15,29 @@ RUN npm run build
 # ─── Stage 2: PHP application ─────────────────────────────────────────────────
 FROM php:8.3-apache AS app
 
-# Install system dependencies + all libs needed for PHP extensions
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    zip \
-    unzip \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
-    libfreetype6-dev \
-    libjpeg62-turbo-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Use the official PHP extension installer — handles ALL system deps automatically
+ADD --chmod=0755 https://github.com/mlocati/php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
-# Install PHP extensions (gd with freetype + jpeg only — sufficient for QR code generation)
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-        pdo \
-        pdo_mysql \
-        mbstring \
-        exif \
-        pcntl \
-        bcmath \
-        gd \
-        zip \
-        intl \
-        opcache
+# Install required PHP extensions (no manual apt-get juggling needed)
+RUN install-php-extensions \
+    gd \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    zip \
+    intl \
+    opcache
+
+# Install system tools needed at runtime
+RUN apt-get update && apt-get install -y git curl unzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Enable Apache modules and configure document root for Laravel
+# Enable Apache modules and point document root to Laravel public/
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
@@ -56,28 +46,28 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 
 WORKDIR /var/www/html
 
-# Install PHP dependencies first (better layer caching)
+# Install PHP dependencies first for better Docker layer caching
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# Copy full application
+# Copy full application source
 COPY . .
 
-# Copy pre-built Vite assets from node stage
+# Overlay pre-built Vite assets from node stage
 COPY --from=node-builder /app/public/build ./public/build
 
-# Set correct ownership and permissions
+# Fix ownership and permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Run Composer post-install hooks (package discovery etc.)
+# Run Composer post-install hooks (service providers, package discovery)
 RUN composer run-script post-autoload-dump
 
-# Use production PHP settings
+# Use PHP production settings
 RUN cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
 
-# Copy and enable startup entrypoint
+# Copy and enable startup script
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
