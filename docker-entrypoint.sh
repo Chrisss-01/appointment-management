@@ -5,6 +5,12 @@ echo "========================================"
 echo "  UV Clinic - Container Startup"
 echo "========================================"
 
+# Railway injects $PORT — configure Apache to listen on it (default 80 locally)
+APP_PORT="${PORT:-80}"
+echo "==> Configuring Apache to listen on port ${APP_PORT}..."
+sed -i "s/Listen 80/Listen ${APP_PORT}/" /etc/apache2/ports.conf
+sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${APP_PORT}>/" /etc/apache2/sites-enabled/*.conf
+
 # Cache config/routes/views (requires APP_KEY to be set)
 echo "==> Caching Laravel configuration..."
 php artisan config:cache || echo "WARNING: config:cache failed (APP_KEY missing?)"
@@ -27,5 +33,5 @@ fi
 echo "==> Creating storage symlink..."
 php artisan storage:link 2>/dev/null || echo "    Storage link already exists."
 
-echo "==> Starting Apache on port ${PORT:-80}..."
+echo "==> Starting Apache on port ${APP_PORT}..."
 exec apache2-foreground
