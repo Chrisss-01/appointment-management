@@ -9,7 +9,7 @@
         <div class="lg:col-span-1">
             <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-6">
                 <h3 class="text-sm font-semibold text-white mb-4">Add Reason Preset</h3>
-                <form action="{{ route('admin.reason-presets.store') }}" method="POST" class="space-y-4">
+                <form action="{{ route('admin.reason-presets.store') }}" method="POST" class="space-y-4" data-preset-form>
                     @csrf
                     <div>
                         <label class="block text-xs text-gray-400 mb-1.5">Service</label>
@@ -28,7 +28,7 @@
                             placeholder="e.g. Headache">
                     </div>
                     <button type="submit"
-                        class="w-full py-3 bg-[#1392EC] hover:bg-[#1392EC]/80 text-white text-sm font-semibold rounded-xl transition-all">Add
+                        class="w-full py-3 bg-[#1392EC] hover:bg-[#1392EC]/80 text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">Add
                         Preset</button>
                 </form>
             </div>
@@ -89,3 +89,15 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.querySelectorAll('[data-preset-form]').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            const btn = form.querySelector('[type="submit"]');
+            if (btn.disabled) return false;
+            btn.disabled = true;
+        });
+    });
+</script>
+@endpush

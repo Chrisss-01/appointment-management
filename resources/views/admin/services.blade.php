@@ -149,7 +149,7 @@ $iconOptions = [
                 {{-- Reason Presets --}}
                 <div class="px-5 py-4">
                     <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Reason Presets</h4>
-                    <div class="space-y-2 mb-3">
+                    <div class="space-y-2 mb-3" id="preset-list-{{ $service->id }}">
                         @foreach($service->reasonPresets as $preset)
                         <div class="flex items-center justify-between px-3 py-2 bg-[#141414] rounded-lg">
                             <div class="flex items-center gap-2 flex-1">
@@ -162,19 +162,28 @@ $iconOptions = [
                                     </button>
                                 </form>
                             </div>
-                            <form action="{{ route('admin.services.reason-presets.destroy', $preset) }}" method="POST" onsubmit="return confirm('Remove this preset?')">
-                                @csrf @method('DELETE')
-                                <button class="text-gray-500 hover:text-red-400 transition-colors ml-2">
-                                    <span class="material-symbols-outlined" style="font-size:14px;">close</span>
-                                </button>
-                            </form>
+                            <button type="button"
+                                    data-delete-btn
+                                    data-url="{{ route('admin.services.reason-presets.destroy', $preset) }}"
+                                    data-csrf="{{ csrf_token() }}"
+                                    data-confirm="Remove this preset?"
+                                    class="text-gray-500 hover:text-red-400 transition-colors ml-2">
+                                <span class="material-symbols-outlined" style="font-size:14px;">close</span>
+                            </button>
                         </div>
                         @endforeach
                     </div>
-                    <form action="{{ route('admin.services.reason-presets.store', $service) }}" method="POST" class="flex gap-2">
-                        @csrf
-                        <input type="text" name="label" required class="flex-1 bg-[#141414] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]" placeholder="Add a reason preset">
-                        <button type="submit" class="px-3 py-2 bg-[#1392EC]/10 text-[#1392EC] text-xs font-medium rounded-lg hover:bg-[#1392EC]/20 transition-all shrink-0">
+                    <form data-preset-form
+                          data-url="{{ route('admin.services.reason-presets.store', $service) }}"
+                          data-delete-base="{{ url('admin/service-reason-presets') }}"
+                          data-csrf="{{ csrf_token() }}"
+                          data-list="preset-list-{{ $service->id }}"
+                          class="flex gap-2">
+                        <input type="text" name="label" required
+                               class="flex-1 bg-[#141414] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]"
+                               placeholder="Add a reason preset">
+                        <button type="submit"
+                                class="px-3 py-2 bg-[#1392EC]/10 text-[#1392EC] text-xs font-medium rounded-lg hover:bg-[#1392EC]/20 transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
                             <span class="material-symbols-outlined" style="font-size:14px;">add</span>
                         </button>
                     </form>
@@ -192,3 +201,135 @@ $iconOptions = [
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    // ── Reason Preset: inline add via fetch ──────────────────────────
+    document.querySelectorAll('[data-preset-form]').forEach(function (form) {
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const btn        = form.querySelector('[type="submit"]');
+            const input      = form.querySelector('[name="label"]');
+            const label      = input.value.trim();
+            const url        = form.dataset.url;
+            const deleteBase = form.dataset.deleteBase;
+            const listId     = form.dataset.list;
+            const csrf       = form.dataset.csrf;
+
+            if (!label || btn.disabled) return;
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrf || CSRF,
+                    },
+                    body: JSON.stringify({ label }),
+                });
+
+                if (!res.ok) throw new Error('Server error');
+
+                const preset = await res.json();
+                const list   = document.getElementById(listId);
+
+                // Build the new row — delete button uses data-delete-btn (no form)
+                const deleteUrl  = deleteBase + '/' + preset.id;
+                const deleteBtn  = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.setAttribute('data-delete-btn', '');
+                deleteBtn.setAttribute('data-url', deleteUrl);
+                deleteBtn.setAttribute('data-csrf', csrf || CSRF);
+                deleteBtn.setAttribute('data-confirm', 'Remove this preset?');
+                deleteBtn.className = 'text-gray-500 hover:text-red-400 transition-colors ml-2';
+                deleteBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">close</span>';
+
+                const updateUrl  = deleteBase + '/' + preset.id;
+                const updateForm = document.createElement('form');
+                updateForm.action = updateUrl;
+                updateForm.method = 'POST';
+                updateForm.className = 'flex-1 flex gap-2 items-center';
+                updateForm.innerHTML = `
+                    <input type="hidden" name="_token" value="${csrf || CSRF}">
+                    <input type="hidden" name="_method" value="PUT">
+                    <input type="text" name="label" value="${preset.label}" required
+                           class="flex-1 bg-transparent border-b border-transparent hover:border-white/10 focus:border-[#1392EC] text-sm text-white py-1 px-1 focus:outline-none transition-colors">
+                    <button type="submit" class="text-gray-500 hover:text-[#1392EC] transition-colors">
+                        <span class="material-symbols-outlined" style="font-size:14px;">check</span>
+                    </button>`;
+
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between px-3 py-2 bg-[#141414] rounded-lg';
+                row.innerHTML = `
+                    <div class="flex items-center gap-2 flex-1">
+                        <span class="material-symbols-outlined text-gray-500" style="font-size:16px;">label</span>
+                    </div>`;
+                row.querySelector('.flex').appendChild(updateForm);
+                row.appendChild(deleteBtn);
+
+                if (list) list.appendChild(row);
+
+                input.value = '';
+                if (window.Notify) Notify.success('Reason preset added.');
+            } catch (err) {
+                console.error('Failed to add preset:', err);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    });
+    // ── Reason Preset: AJAX delete via event delegation ─────────────
+    document.addEventListener('click', async function (e) {
+        const btn = e.target.closest('[data-delete-btn]');
+        if (!btn) return;
+
+        const url     = btn.dataset.url;
+        const csrf    = btn.dataset.csrf || CSRF;
+        const message = btn.dataset.confirm || 'Are you sure?';
+        if (!url) return;
+
+        // Use SweetAlert2 confirm if available, else native confirm
+        let confirmed = false;
+        if (window.Notify?.confirm) {
+            const result = await Notify.confirm('Delete Preset', message, 'Remove');
+            confirmed = result.isConfirmed;
+        } else {
+            confirmed = window.confirm(message);
+        }
+        if (!confirmed) return;
+
+        btn.disabled = true;
+        try {
+            const res = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                },
+            });
+
+            if (!res.ok) throw new Error('Delete failed');
+
+            // Animate removal: fade then remove DOM node
+            const row = btn.closest('[class*="bg-\\[#141414\\]"]') ?? btn.closest('div');
+            if (row) {
+                row.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(6px)';
+                setTimeout(() => row.remove(), 210);
+            }
+            if (window.Notify) Notify.success('Preset removed.');
+        } catch (err) {
+            console.error('Delete failed:', err);
+            btn.disabled = false;
+        }
+    });
+}());
+</script>
+@endpush

@@ -21,7 +21,20 @@ class RoleMiddleware
         }
 
         if (!in_array($request->user()->role, $roles)) {
-            abort(403, 'Unauthorized. You do not have the required role to access this resource.');
+            $dashboards = config('roles.dashboards', []);
+            $userRole = $request->user()->role;
+
+            if (array_key_exists($userRole, $dashboards)) {
+                $targetRoute = $dashboards[$userRole];
+
+                // Prevent redirect loop if the current route is already the target dashboard
+                if ($request->route()->getName() !== $targetRoute) {
+                    return redirect()->route($targetRoute)
+                        ->with('error', 'You do not have permission to access that page.');
+                }
+            }
+
+            abort(403, 'Unauthorized.');
         }
 
         if (!$request->user()->is_active) {

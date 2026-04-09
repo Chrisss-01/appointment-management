@@ -275,13 +275,13 @@
 
             slotsSubtitle.textContent = `${slots.length} slot(s) available`;
             slotsContainer.innerHTML = slots.map(s => `
-                <button onclick="selectSlot(${s.id}, this)" class="slot-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-[#141414] hover:border-[#1392EC]/30 hover:bg-[#1392EC]/5 transition-all text-left">
+                <button onclick="selectSlot(${s.id}, this)" class="slot-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-[#141414] hover:border-[#1392EC]/30 hover:bg-[#1392EC]/5 transition-all duration-300 text-left">
                     <span class="material-symbols-outlined text-[#1392EC]" style="font-size:18px;">schedule</span>
                     <div class="flex-1">
                         <span class="text-sm font-medium text-white">${formatTime(s.start_time)} – ${formatTime(s.end_time)}</span>
                         <span class="block text-xs text-gray-500">${s.staff_name}</span>
                     </div>
-                    <span class="material-symbols-outlined text-gray-600 check-icon" style="font-size:18px;">radio_button_unchecked</span>
+                    <span class="material-symbols-outlined text-gray-600 check-icon scale-90 transition-transform duration-300" style="font-size:18px;">radio_button_unchecked</span>
                 </button>
             `).join('');
         } catch(e) {
@@ -292,11 +292,20 @@
     window.selectSlot = function(slotId, el) {
         selectedSlotId = slotId;
         document.querySelectorAll('.slot-btn').forEach(btn => {
-            btn.classList.remove('border-[#1392EC]/50', 'bg-[#1392EC]/10');
+            btn.classList.remove('border-[#1392EC]', 'bg-[#1392EC]/20', 'ring-2', 'ring-inset', 'ring-[#1392EC]/40', 'shadow-md');
             btn.querySelector('.check-icon').textContent = 'radio_button_unchecked';
+            btn.querySelector('.check-icon').classList.remove('text-[#1392EC]', 'scale-110');
+            btn.querySelector('.check-icon').classList.add('text-gray-600', 'scale-90');
         });
-        el.classList.add('border-[#1392EC]/50', 'bg-[#1392EC]/10');
-        el.querySelector('.check-icon').textContent = 'check_circle';
+        
+        // Use ring-inset and a slightly stronger background instead of scale/translate
+        el.classList.add('border-[#1392EC]', 'bg-[#1392EC]/25', 'ring-2', 'ring-inset', 'ring-[#1392EC]/40', 'shadow-md');
+        
+        const icon = el.querySelector('.check-icon');
+        icon.textContent = 'check_circle';
+        icon.classList.remove('text-gray-600', 'scale-90');
+        icon.classList.add('text-[#1392EC]', 'scale-110');
+        
         bookingForm.classList.remove('hidden');
         confirmBtn.disabled = false;
     };

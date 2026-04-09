@@ -6,7 +6,7 @@
 @section('content')
 {{-- Filter Tabs --}}
 <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-    @foreach(['all' => 'All', 'pending' => 'Pending', 'approved' => 'Approved', 'completed' => 'Completed', 'no_show' => 'No Show', 'cancelled' => 'Cancelled', 'rejected' => 'Rejected'] as $val => $label)
+    @foreach(['all' => 'All', 'pending' => 'Pending', 'approved' => 'Approved', 'completed' => 'Completed', 'no_show' => 'No Show', 'cancelled' => 'Cancelled', 'expired' => 'Expired', 'rejected' => 'Rejected'] as $val => $label)
     <a href="{{ route('admin.appointments', ['status' => $val]) }}" 
        class="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all {{ $status === $val ? 'bg-[#1392EC] text-white shadow-lg shadow-[#1392EC]/20' : 'bg-[#1A1A1A] border border-white/5 text-gray-400 hover:text-white hover:bg-white/5' }}">
         {{ $label }}
@@ -70,6 +70,7 @@
                                 'completed' => 'bg-blue-500/10 text-blue-500 border-blue-500/20',
                                 'no_show' => 'bg-orange-500/10 text-orange-500 border-orange-500/20',
                                 'cancelled' => 'bg-red-500/10 text-red-500 border-red-500/20',
+                                'expired' => 'bg-gray-500/10 text-gray-400 border-white/5',
                                 'rejected' => 'bg-gray-500/10 text-gray-400 border-white/5',
                                 default => 'bg-gray-500/10 text-gray-400 border-white/5'
                             };

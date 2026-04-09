@@ -90,7 +90,16 @@ class CertificateTypeController extends Controller
 
         $validated['is_required'] = $request->boolean('is_required', true);
 
-        $certificateType->requiredDocuments()->create($validated);
+        $doc = $certificateType->requiredDocuments()->create($validated);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'id'          => $doc->id,
+                'name'        => $doc->name,
+                'description' => $doc->description,
+                'is_required' => $doc->is_required,
+            ]);
+        }
 
         return back()->with('success', 'Required document added.');
     }
@@ -98,6 +107,11 @@ class CertificateTypeController extends Controller
     public function destroyDocument(CertificateTypeDocument $document)
     {
         $document->delete();
+
+        if (request()->wantsJson()) {
+            return response()->noContent();
+        }
+
         return back()->with('success', 'Required document removed.');
     }
 
@@ -109,7 +123,11 @@ class CertificateTypeController extends Controller
             'label' => 'required|string|max:255',
         ]);
 
-        $certificateType->purposePresets()->create($validated);
+        $preset = $certificateType->purposePresets()->create($validated);
+
+        if ($request->wantsJson()) {
+            return response()->json(['id' => $preset->id, 'label' => $preset->label]);
+        }
 
         return back()->with('success', 'Purpose preset added.');
     }
@@ -117,6 +135,11 @@ class CertificateTypeController extends Controller
     public function destroyPurpose(CertificatePurposePreset $preset)
     {
         $preset->delete();
+
+        if (request()->wantsJson()) {
+            return response()->noContent();
+        }
+
         return back()->with('success', 'Purpose preset removed.');
     }
 }

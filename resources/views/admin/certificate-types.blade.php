@@ -120,7 +120,7 @@
                         <div class="px-5 py-4 border-b border-white/5">
                             <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Required Documents
                             </h4>
-                            <div class="space-y-2 mb-3">
+                            <div class="space-y-2 mb-3" id="doc-list-{{ $type->id }}">
                                 @foreach($type->requiredDocuments as $doc)
                                     <div class="flex items-center justify-between px-3 py-2 bg-[#141414] rounded-lg">
                                         <div>
@@ -134,19 +134,23 @@
                                                 <span class="text-[10px] text-gray-500 ml-1">Optional</span>
                                             @endif
                                         </div>
-                                        <form action="{{ route('admin.certificate-types.documents.destroy', $doc) }}" method="POST"
-                                            onsubmit="return confirm('Remove this document requirement?')">
-                                            @csrf @method('DELETE')
-                                            <button class="text-gray-500 hover:text-red-400 transition-colors">
-                                                <span class="material-symbols-outlined" style="font-size:14px;">close</span>
-                                            </button>
-                                        </form>
+                                        <button type="button"
+                                            data-delete-btn
+                                            data-url="{{ route('admin.certificate-types.documents.destroy', $doc) }}"
+                                            data-csrf="{{ csrf_token() }}"
+                                            data-confirm="Remove this document requirement?"
+                                            class="text-gray-500 hover:text-red-400 transition-colors">
+                                            <span class="material-symbols-outlined" style="font-size:14px;">close</span>
+                                        </button>
                                     </div>
                                 @endforeach
                             </div>
-                            <form action="{{ route('admin.certificate-types.documents.store', $type) }}" method="POST"
-                                class="flex gap-2 items-end">
-                                @csrf
+                            <form data-doc-form
+                                  data-url="{{ route('admin.certificate-types.documents.store', $type) }}"
+                                  data-delete-base="{{ url('admin/certificate-type-documents') }}"
+                                  data-csrf="{{ csrf_token() }}"
+                                  data-list="doc-list-{{ $type->id }}"
+                                  class="flex gap-2 items-end">
                                 <div class="flex-1">
                                     <input type="text" name="name" required
                                         class="w-full bg-[#141414] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]"
@@ -163,7 +167,7 @@
                                     Req
                                 </label>
                                 <button type="submit"
-                                    class="px-3 py-2 bg-[#1392EC]/10 text-[#1392EC] text-xs font-medium rounded-lg hover:bg-[#1392EC]/20 transition-all shrink-0">
+                                    class="px-3 py-2 bg-[#1392EC]/10 text-[#1392EC] text-xs font-medium rounded-lg hover:bg-[#1392EC]/20 transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
                                     <span class="material-symbols-outlined" style="font-size:14px;">add</span>
                                 </button>
                             </form>
@@ -172,29 +176,33 @@
                         {{-- Purpose Presets --}}
                         <div class="px-5 py-4">
                             <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Purpose Presets</h4>
-                            <div class="flex flex-wrap gap-2 mb-3">
+                            <div class="flex flex-wrap gap-2 mb-3" id="purpose-list-{{ $type->id }}">
                                 @foreach($type->purposePresets as $purpose)
                                     <div
                                         class="flex items-center gap-1.5 px-3 py-1.5 bg-[#141414] border border-white/5 rounded-lg">
                                         <span class="text-sm text-white">{{ $purpose->label }}</span>
-                                        <form action="{{ route('admin.certificate-types.purposes.destroy', $purpose) }}"
-                                            method="POST" onsubmit="return confirm('Remove?')">
-                                            @csrf @method('DELETE')
-                                            <button class="text-gray-500 hover:text-red-400 transition-colors">
-                                                <span class="material-symbols-outlined" style="font-size:12px;">close</span>
-                                            </button>
-                                        </form>
+                                        <button type="button"
+                                            data-delete-btn
+                                            data-url="{{ route('admin.certificate-types.purposes.destroy', $purpose) }}"
+                                            data-csrf="{{ csrf_token() }}"
+                                            data-confirm="Remove this purpose preset?"
+                                            class="text-gray-500 hover:text-red-400 transition-colors">
+                                            <span class="material-symbols-outlined" style="font-size:12px;">close</span>
+                                        </button>
                                     </div>
                                 @endforeach
                             </div>
-                            <form action="{{ route('admin.certificate-types.purposes.store', $type) }}" method="POST"
-                                class="flex gap-2">
-                                @csrf
+                            <form data-purpose-form
+                                  data-url="{{ route('admin.certificate-types.purposes.store', $type) }}"
+                                  data-delete-base="{{ url('admin/certificate-purpose-presets') }}"
+                                  data-csrf="{{ csrf_token() }}"
+                                  data-list="purpose-list-{{ $type->id }}"
+                                  class="flex gap-2">
                                 <input type="text" name="label" required
                                     class="flex-1 bg-[#141414] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC]"
                                     placeholder="Add a purpose preset">
                                 <button type="submit"
-                                    class="px-3 py-2 bg-[#1392EC]/10 text-[#1392EC] text-xs font-medium rounded-lg hover:bg-[#1392EC]/20 transition-all shrink-0">
+                                    class="px-3 py-2 bg-[#1392EC]/10 text-[#1392EC] text-xs font-medium rounded-lg hover:bg-[#1392EC]/20 transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
                                     <span class="material-symbols-outlined" style="font-size:14px;">add</span>
                                 </button>
                             </form>
@@ -212,3 +220,189 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    // ── Purpose Presets: inline add via fetch ──────────────────────────
+    document.querySelectorAll('[data-purpose-form]').forEach(function (form) {
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const btn        = form.querySelector('[type="submit"]');
+            const input      = form.querySelector('[name="label"]');
+            const label      = input.value.trim();
+            const url        = form.dataset.url;
+            const deleteBase = form.dataset.deleteBase;
+            const listId     = form.dataset.list;
+            const csrf       = form.dataset.csrf;
+
+            if (!label || btn.disabled) return;
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrf || CSRF,
+                    },
+                    body: JSON.stringify({ label }),
+                });
+
+                if (!res.ok) throw new Error('Server error');
+
+                const preset     = await res.json();
+                const list       = document.getElementById(listId);
+                const deleteUrl  = deleteBase + '/' + preset.id;
+
+                const deleteBtn  = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.setAttribute('data-delete-btn', '');
+                deleteBtn.setAttribute('data-url', deleteUrl);
+                deleteBtn.setAttribute('data-csrf', csrf || CSRF);
+                deleteBtn.setAttribute('data-confirm', 'Remove this purpose preset?');
+                deleteBtn.className = 'text-gray-500 hover:text-red-400 transition-colors';
+                deleteBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:12px;">close</span>';
+
+                const chip = document.createElement('div');
+                chip.className = 'flex items-center gap-1.5 px-3 py-1.5 bg-[#141414] border border-white/5 rounded-lg';
+                chip.innerHTML = `<span class="text-sm text-white">${preset.label}</span>`;
+                chip.appendChild(deleteBtn);
+
+                if (list) list.appendChild(chip);
+                input.value = '';
+                if (window.Notify) Notify.success('Purpose preset added.');
+            } catch (err) {
+                console.error('Failed to add purpose preset:', err);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    });
+
+    // ── Required Documents: inline add via fetch ───────────────────────
+    document.querySelectorAll('[data-doc-form]').forEach(function (form) {
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const btn         = form.querySelector('[type="submit"]');
+            const nameInput   = form.querySelector('[name="name"]');
+            const descInput   = form.querySelector('[name="description"]');
+            const reqCheckbox = form.querySelector('[name="is_required"]');
+            const name        = nameInput.value.trim();
+            const description = descInput?.value.trim() ?? '';
+            const is_required = reqCheckbox ? reqCheckbox.checked : true;
+            const url         = form.dataset.url;
+            const deleteBase  = form.dataset.deleteBase;
+            const listId      = form.dataset.list;
+            const csrf        = form.dataset.csrf;
+
+            if (!name || btn.disabled) return;
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrf || CSRF,
+                    },
+                    body: JSON.stringify({ name, description, is_required }),
+                });
+
+                if (!res.ok) throw new Error('Server error');
+
+                const doc        = await res.json();
+                const list       = document.getElementById(listId);
+                const deleteUrl  = deleteBase + '/' + doc.id;
+
+                const deleteBtn  = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.setAttribute('data-delete-btn', '');
+                deleteBtn.setAttribute('data-url', deleteUrl);
+                deleteBtn.setAttribute('data-csrf', csrf || CSRF);
+                deleteBtn.setAttribute('data-confirm', 'Remove this document requirement?');
+                deleteBtn.className = 'text-gray-500 hover:text-red-400 transition-colors';
+                deleteBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">close</span>';
+
+                const badge      = doc.is_required
+                    ? '<span class="text-[10px] text-amber-400 ml-1">Required</span>'
+                    : '<span class="text-[10px] text-gray-500 ml-1">Optional</span>';
+                const descBadge  = doc.description
+                    ? `<span class="text-xs text-gray-500 ml-2">${doc.description}</span>`
+                    : '';
+
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between px-3 py-2 bg-[#141414] rounded-lg';
+                row.innerHTML = `
+                    <div>
+                        <span class="text-sm text-white">${doc.name}</span>
+                        ${descBadge}
+                        ${badge}
+                    </div>`;
+                row.appendChild(deleteBtn);
+
+                if (list) list.appendChild(row);
+
+                nameInput.value = '';
+                if (descInput) descInput.value = '';
+                if (window.Notify) Notify.success('Document requirement added.');
+            } catch (err) {
+                console.error('Failed to add document:', err);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    });
+    // ── Shared AJAX delete via event delegation ────────────────────────
+    document.addEventListener('click', async function (e) {
+        const btn = e.target.closest('[data-delete-btn]');
+        if (!btn) return;
+
+        const url     = btn.dataset.url;
+        const csrf    = btn.dataset.csrf || CSRF;
+        const message = btn.dataset.confirm || 'Are you sure?';
+        if (!url) return;
+
+        let confirmed = false;
+        if (window.Notify?.confirm) {
+            const result = await Notify.confirm('Delete Item', message, 'Remove');
+            confirmed = result.isConfirmed;
+        } else {
+            confirmed = window.confirm(message);
+        }
+        if (!confirmed) return;
+
+        btn.disabled = true;
+        try {
+            const res = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                },
+            });
+
+            if (!res.ok) throw new Error('Delete failed');
+
+            const row = btn.closest('[class*="bg-\\[#141414\\]"]') ?? btn.closest('div');
+            if (row) {
+                row.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(6px)';
+                setTimeout(() => row.remove(), 210);
+            }
+            if (window.Notify) Notify.success('Item removed.');
+        } catch (err) {
+            console.error('Delete failed:', err);
+            btn.disabled = false;
+        }
+    });
+}());
+</script>
+@endpush

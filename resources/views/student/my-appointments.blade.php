@@ -11,7 +11,7 @@
 
     {{-- Filter Tabs --}}
     <div class="flex gap-2 mb-6 overflow-x-auto">
-        @foreach(['all' => 'All', 'pending' => 'Pending', 'approved' => 'Approved', 'completed' => 'Completed', 'no_show' => 'No Show', 'closed' => 'Closed'] as $key => $label)
+        @foreach(['all' => 'All', 'pending' => 'Pending', 'approved' => 'Approved', 'completed' => 'Completed', 'no_show' => 'No Show', 'expired' => 'Expired', 'closed' => 'Closed'] as $key => $label)
         <a href="?status={{ $key }}" class="px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap
             {{ ($status ?? 'all') === $key ? 'bg-[#1392EC] text-white' : 'bg-[#1A1A1A] text-gray-400 border border-white/5 hover:text-white' }}">
             {{ $label }}
@@ -85,6 +85,7 @@
                             @php
                                 $statusColors = [
                                     'pending' => 'bg-amber-500/10 text-amber-400',
+                                    'expired' => 'bg-red-500/10 text-red-400',
                                     'approved' => 'bg-[#1392EC]/10 text-[#1392EC]',
                                     'rejected' => 'bg-red-500/10 text-red-400',
                                     'completed' => 'bg-green-500/10 text-green-400',
@@ -94,6 +95,7 @@
                                 ];
                                 $statusLabels = [
                                     'pending' => 'Pending',
+                                    'expired' => 'Expired',
                                     'approved' => 'Approved',
                                     'rejected' => 'Rejected',
                                     'completed' => 'Completed',
@@ -129,6 +131,12 @@
                                     class="text-xs text-gray-400 hover:text-gray-300 transition-colors">
                                     View Reason
                                 </button>
+                            @elseif($apt->status === 'expired' && $apt->expiry_reason)
+                                <button type="button"
+                                    @click="viewReason = {{ json_encode($apt->expiry_reason) }}; viewReasonTitle = 'Expiry Reason'"
+                                    class="text-xs text-gray-400 hover:text-gray-300 transition-colors">
+                                    View Reason
+                                </button>
                             @else
                                 <span class="text-gray-600 text-xs">—</span>
                             @endif
@@ -145,78 +153,85 @@
     </div>
 
     {{-- Cancel Appointment Modal --}}
-    <div x-show="cancelId !== null" x-cloak
-         class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-         @keydown.escape.window="cancelId = null">
-        <div class="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 w-full max-w-md"
-             @click.outside="cancelId = null">
-            <h3 class="text-lg font-semibold text-white mb-1">Cancel Appointment</h3>
-            <p class="text-sm text-gray-400 mb-4">Are you sure you want to cancel this appointment? Please select a reason.</p>
+    <template x-teleport="body">
+        <div x-show="cancelId !== null" x-cloak
+            class="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4"
+            @keydown.escape.window="cancelId = null">
+            <div class="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 w-full max-w-md"
+                @click.outside="cancelId = null">
+                <h3 class="text-lg font-semibold text-white mb-1">Cancel Appointment</h3>
+                <p class="text-sm text-gray-400 mb-4">Are you sure you want to cancel this appointment? Please select a reason.</p>
 
-            <form :action="cancelAction" method="POST" x-data="{ selectedReason: '', customReason: '' }">
-                @csrf
-                @method('PATCH')
+                <form :action="cancelAction" method="POST" x-data="{ selectedReason: '', customReason: '', submitting: false }" @submit="submitting = true">
+                    @csrf
+                    @method('PATCH')
 
-                <label class="block text-xs text-gray-400 mb-2">Reason for cancellation <span class="text-red-400">*</span></label>
-                <select x-model="selectedReason"
-                    class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC] mb-3">
-                    <option value="">Select a reason</option>
-                    <option value="Wrong booking">Wrong booking</option>
-                    <option value="Schedule conflict">Schedule conflict</option>
-                    <option value="Feeling better">Feeling better</option>
-                    <option value="__other__">Other</option>
-                </select>
+                    <label class="block text-xs text-gray-400 mb-2">Reason for cancellation <span class="text-red-400">*</span></label>
+                    <select x-model="selectedReason"
+                        class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#1392EC] mb-3">
+                        <option value="">Select a reason</option>
+                        <option value="Wrong booking">Wrong booking</option>
+                        <option value="Schedule conflict">Schedule conflict</option>
+                        <option value="Feeling better">Feeling better</option>
+                        <option value="__other__">Other</option>
+                    </select>
 
-                <div x-show="selectedReason === '__other__'" x-cloak class="mb-3">
-                    <label class="block text-xs text-gray-400 mb-2">Please specify</label>
-                    <textarea x-model="customReason" rows="3"
-                        class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#1392EC] resize-none"
-                        placeholder="Enter your reason..."></textarea>
-                </div>
+                    <div x-show="selectedReason === '__other__'" x-cloak class="mb-3">
+                        <label class="block text-xs text-gray-400 mb-2">Please specify</label>
+                        <textarea x-model="customReason" rows="3"
+                            class="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#1392EC] resize-none"
+                            placeholder="Enter your reason..."></textarea>
+                    </div>
 
-                {{-- Hidden field that combines the reason --}}
-                <input type="hidden" name="cancellation_reason"
-                    :value="selectedReason === '__other__' ? customReason : selectedReason">
+                    {{-- Hidden field that combines the reason --}}
+                    <input type="hidden" name="cancellation_reason"
+                        :value="selectedReason === '__other__' ? customReason : selectedReason">
 
-                <div class="flex justify-end gap-3 mt-4">
-                    <button type="button" @click="cancelId = null"
-                        class="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
-                        Go Back
-                    </button>
-                    <button type="submit"
-                        :disabled="!selectedReason || (selectedReason === '__other__' && !customReason.trim())"
-                        class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                        Confirm Cancellation
-                    </button>
-                </div>
-            </form>
+                    <div class="flex justify-end gap-3 mt-4">
+                        <button type="button" @click="cancelId = null"
+                            class="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
+                            Go Back
+                        </button>
+                        <button type="submit"
+                            :disabled="!selectedReason || (selectedReason === '__other__' && !customReason.trim()) || submitting"
+                            class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[160px]">
+                            <template x-if="submitting">
+                                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            </template>
+                            <span x-text="submitting ? 'Processing...' : 'Confirm Cancellation'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
+    </template>
 
     {{-- View Reason Modal --}}
-    <div x-show="viewReason !== ''" x-cloak
-         class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-         @keydown.escape.window="viewReason = ''; viewReasonTitle = ''">
-        <div class="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 w-full max-w-md"
-             @click.outside="viewReason = ''; viewReasonTitle = ''">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-xl bg-gray-500/10 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-gray-400" style="font-size:20px;">info</span>
+    <template x-teleport="body">
+        <div x-show="viewReason !== ''" x-cloak
+            class="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4"
+            @keydown.escape.window="viewReason = ''; viewReasonTitle = ''">
+            <div class="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 w-full max-w-md"
+                @click.outside="viewReason = ''; viewReasonTitle = ''">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-gray-500/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-gray-400" style="font-size:20px;">info</span>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white" x-text="viewReasonTitle"></h3>
                 </div>
-                <h3 class="text-lg font-semibold text-white" x-text="viewReasonTitle"></h3>
-            </div>
 
-            <div class="bg-[#141414] rounded-xl p-4 mb-4">
-                <p class="text-sm text-gray-300" x-text="viewReason"></p>
-            </div>
+                <div class="bg-[#141414] rounded-xl p-4 mb-4">
+                    <p class="text-sm text-gray-300" x-text="viewReason"></p>
+                </div>
 
-            <div class="flex justify-end">
-                <button type="button" @click="viewReason = ''; viewReasonTitle = ''"
-                    class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-xl transition-all">
-                    Close
-                </button>
+                <div class="flex justify-end">
+                    <button type="button" @click="viewReason = ''; viewReasonTitle = ''"
+                        class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-xl transition-all">
+                        Close
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
+    </template>
 </div>
 @endsection

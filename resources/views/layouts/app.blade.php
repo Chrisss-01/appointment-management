@@ -139,6 +139,12 @@
         .notification-dropdown.show {
             display: block;
         }
+
+        /* Fix date/time picker icon visibility */
+        input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
     </style>
     @stack('styles')
 </head>
@@ -154,11 +160,11 @@
 
             {{-- Brand --}}
             <div class="px-5 py-5 border-b border-white/5">
-                <a href="/" class="flex items-center gap-3">
+                <a href="{{ route(auth()->user()->role . '.dashboard') }}" class="flex items-center gap-3">
                     <div
                         class="w-9 h-9 bg-gradient-to-br from-[#1392EC] to-[#1392EC] rounded-xl flex items-center justify-center shadow-lg shadow-[#1392EC]/20">
                         <span class="material-symbols-outlined text-white text-lg"
-                            style="font-size:20px;">local_hospital</span>
+                            style="font-size:20px;">health_and_safety</span>
                     </div>
                     <div>
                         <span class="text-lg font-bold text-white tracking-tight">UV Clinic</span>
@@ -257,7 +263,8 @@
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden" onclick="closeSidebar()"></div>
 
     {{-- Notification Sound --}}
-    <audio id="notification-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <audio id="notification-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+        preload="auto"></audio>
 
     <script>
         window.__userRole = '{{ auth()->user()->role ?? "guest" }}';
@@ -410,7 +417,7 @@
                 // Update local status so we don't mark it twice
                 const n = window.__notifications.find(x => x.id == id);
                 if (n) n.read_at = new Date().toISOString();
-                
+
                 // Update unread count locally for badge (optional, loadNotifications will catch it on next interval)
                 // but better to refresh immediately for better UX
                 const badge = document.getElementById('notification-badge');

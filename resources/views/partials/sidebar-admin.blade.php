@@ -36,7 +36,7 @@
     <button data-submenu="clinic-mgmt-menu"
         class="nav-link flex items-center justify-between w-full px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.services*') || request()->routeIs('admin.appointments*') ? 'active' : 'text-gray-400' }}">
         <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined nav-icon" style="font-size:20px;">local_hospital</span>
+            <span class="material-symbols-outlined nav-icon" style="font-size:20px;">health_and_safety</span>
             <span class="nav-text text-sm whitespace-nowrap">Clinic Management</span>
         </div>
         <span

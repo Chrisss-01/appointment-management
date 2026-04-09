@@ -86,7 +86,11 @@ class ServiceController extends Controller
             'label' => 'required|string|max:255',
         ]);
 
-        $service->reasonPresets()->create($validated);
+        $preset = $service->reasonPresets()->create($validated);
+
+        if ($request->wantsJson()) {
+            return response()->json(['id' => $preset->id, 'label' => $preset->label]);
+        }
 
         return back()->with('success', 'Reason preset added.');
     }
@@ -111,6 +115,10 @@ class ServiceController extends Controller
     public function destroyReasonPreset(ReasonPreset $reasonPreset)
     {
         $reasonPreset->delete();
+
+        if (request()->wantsJson()) {
+            return response()->noContent();
+        }
 
         return back()->with('success', 'Reason preset removed.');
     }

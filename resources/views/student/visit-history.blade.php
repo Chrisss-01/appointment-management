@@ -24,7 +24,7 @@
                 <p class="text-sm font-medium text-white">{{ $visit->service->name }}</p>
                 <p class="text-xs text-gray-500">{{ $visit->date->format('M d, Y') }} · {{ \Carbon\Carbon::parse($visit->start_time)->format('g:i A') }} · {{ optional($visit->staff)->name ?? 'N/A' }}</p>
             </div>
-            @php $c = ['pending'=>'bg-amber-500/10 text-amber-400','approved'=>'bg-[#1392EC]/10 text-[#1392EC]','rejected'=>'bg-red-500/10 text-red-400','completed'=>'bg-blue-500/10 text-blue-400','cancelled'=>'bg-gray-500/10 text-gray-400','no_show'=>'bg-red-500/10 text-red-400']; @endphp
+            @php $c = ['pending'=>'bg-amber-500/10 text-amber-400','approved'=>'bg-[#1392EC]/10 text-[#1392EC]','rejected'=>'bg-red-500/10 text-red-400','completed'=>'bg-blue-500/10 text-blue-400','cancelled'=>'bg-gray-500/10 text-gray-400','no_show'=>'bg-red-500/10 text-red-400','expired'=>'bg-red-500/10 text-red-400']; @endphp
             <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase {{ $c[$visit->status] ?? '' }}">{{ str_replace('_',' ',$visit->status) }}</span>
         </div>
         @endforeach

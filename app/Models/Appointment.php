@@ -24,6 +24,7 @@ class Appointment extends Model
         'staff_notes',
         'rejection_reason',
         'cancellation_reason',
+        'expiry_reason',
         'cancelled_at',
         'completed_at',
         'queue_number',
@@ -66,6 +67,11 @@ class Appointment extends Model
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->where('status', 'expired');
     }
 
     public function scopeApproved($query)
@@ -111,6 +117,11 @@ class Appointment extends Model
         return $this->status === 'cancelled';
     }
 
+    public function isExpired(): bool
+    {
+        return $this->status === 'expired';
+    }
+
     public function approve(): void
     {
         $this->update(['status' => 'approved']);
@@ -151,5 +162,13 @@ class Appointment extends Model
             'cancelled_at' => now(),
         ]);
         $this->generatedSlot?->markAsAvailable();
+    }
+
+    public function expire(?string $reason = 'Not approved by clinic'): void
+    {
+        $this->update([
+            'status' => 'expired',
+            'expiry_reason' => $reason,
+        ]);
     }
 }
