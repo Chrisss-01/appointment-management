@@ -132,7 +132,7 @@
             </tbody>
         </table>
     </div>
-    <div class="px-5 py-3 border-t border-white/5">{{ $appointments->links() }}</div>
+    <div class="px-5 py-3 border-t border-white/5">{{ $appointments->links('vendor.pagination.appointments-dark') }}</div>
     @endif
 </div>
 
