@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,8 +30,6 @@ class GeneratedSlot extends Model
         ];
     }
 
-    // ── Relationships ───────────────────────────────────────────────
-
     public function availabilitySlot(): BelongsTo
     {
         return $this->belongsTo(AvailabilitySlot::class);
@@ -50,8 +50,6 @@ class GeneratedSlot extends Model
         return $this->hasOne(Appointment::class);
     }
 
-    // ── Scopes ──────────────────────────────────────────────────────
-
     public function scopeAvailable($query)
     {
         return $query->where('status', 'available');
@@ -64,7 +62,7 @@ class GeneratedSlot extends Model
 
     public function scopeForDate($query, string $date)
     {
-        return $query->where('date', $date);
+        return $query->whereDate('date', $date);
     }
 
     public function scopeForService($query, int $serviceId)
@@ -72,7 +70,25 @@ class GeneratedSlot extends Model
         return $query->where('service_id', $serviceId);
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────
+    public function scopeBookableForStudents(Builder $query, ?CarbonInterface $referenceTime = null): Builder
+    {
+        $referenceTime = $referenceTime ? $referenceTime->copy() : now();
+        $today = $referenceTime->toDateString();
+        $leadTimeCutoff = $referenceTime->copy()->addMinutes(30);
+
+        return $query
+            ->available()
+            ->where(function (Builder $query) use ($today, $leadTimeCutoff) {
+                $query->whereDate('date', '>', $today);
+
+                if ($leadTimeCutoff->toDateString() === $today) {
+                    $query->orWhere(function (Builder $query) use ($today, $leadTimeCutoff) {
+                        $query->whereDate('date', $today)
+                            ->where('start_time', '>', $leadTimeCutoff->format('H:i:s'));
+                    });
+                }
+            });
+    }
 
     public function isAvailable(): bool
     {

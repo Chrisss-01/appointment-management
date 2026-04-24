@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookAppointmentRequest;
+use App\Models\Appointment;
 use App\Models\GeneratedSlot;
 use App\Models\Service;
-use App\Models\Appointment;
 use App\Services\BookingService;
 use Illuminate\Http\Request;
 
@@ -24,6 +24,7 @@ class AppointmentController extends Controller
         $services = Service::active()
             ->where('slug', '!=', 'medical-certificate-request')
             ->get();
+
         return view('student.services', compact('services'));
     }
 
@@ -32,12 +33,13 @@ class AppointmentController extends Controller
      */
     public function showService(Service $service)
     {
-        $activeAppointment = \App\Models\Appointment::where('student_id', request()->user()->id)
+        $activeAppointment = Appointment::where('student_id', request()->user()->id)
             ->where('service_id', $service->id)
             ->whereIn('status', ['pending', 'approved'])
             ->first();
 
         $reasonPresets = $service->reasonPresets()->get();
+
         return view('student.book-appointment', compact('service', 'reasonPresets', 'activeAppointment'));
     }
 
@@ -48,31 +50,21 @@ class AppointmentController extends Controller
     {
         $request->validate(['date' => 'required|date|after_or_equal:today']);
 
-        $now = now();
-        $requestedDate = $request->date;
-
-        // Minimum lead time: students must book at least 30 minutes in advance
-        $leadTimeCutoff = $now->copy()->addMinutes(30);
-
-        $query = GeneratedSlot::where('service_id', $service->id)
-            ->whereDate('date', $requestedDate)
-            ->where('status', 'available')
+        $slots = GeneratedSlot::query()
+            ->forService($service->id)
+            ->forDate($request->date)
+            ->bookableForStudents()
             ->with('staff')
-            ->orderBy('start_time');
-
-        // For today, exclude slots that start within the next 30 minutes
-        if ($requestedDate === $now->toDateString()) {
-            $query->where('start_time', '>', $leadTimeCutoff->format('H:i:s'));
-        }
-
-        $slots = $query->get()->map(function ($slot) {
-            return [
-                'id'         => $slot->id,
-                'start_time' => $slot->start_time,
-                'end_time'   => $slot->end_time,
-                'staff_name' => $slot->staff->name,
-            ];
-        });
+            ->orderBy('start_time')
+            ->get()
+            ->map(function ($slot) {
+                return [
+                    'id' => $slot->id,
+                    'start_time' => $slot->start_time,
+                    'end_time' => $slot->end_time,
+                    'staff_name' => $slot->staff->name,
+                ];
+            });
 
         return response()->json($slots)->header('Cache-Control', 'no-store, no-cache');
     }
@@ -82,31 +74,16 @@ class AppointmentController extends Controller
      */
     public function getAvailableDates(Service $service)
     {
-        $now = now();
-        $todayDate = $now->toDateString();
-
-        // Minimum lead time: 30 minutes from now
-        $leadTimeCutoff = $now->copy()->addMinutes(30)->format('H:i:s');
-
-        $dates = GeneratedSlot::where('service_id', $service->id)
-            ->where('status', 'available')
-            ->where('date', '>=', $todayDate)
-            // For today, only count slots that start at least 30 min from now.
-            // For future dates, count all available slots.
-            ->where(function ($q) use ($todayDate, $leadTimeCutoff) {
-                $q->where('date', '>', $todayDate)
-                  ->orWhere(function ($q2) use ($todayDate, $leadTimeCutoff) {
-                      $q2->where('date', $todayDate)
-                         ->where('start_time', '>', $leadTimeCutoff);
-                  });
-            })
+        $dates = GeneratedSlot::query()
+            ->forService($service->id)
+            ->bookableForStudents()
             ->selectRaw('date, COUNT(*) as slot_count')
             ->groupBy('date')
             ->orderBy('date')
             ->get()
             ->map(function ($item) {
                 return [
-                    'date'       => $item->date->format('Y-m-d'),
+                    'date' => $item->date->format('Y-m-d'),
                     'slot_count' => $item->slot_count,
                 ];
             });

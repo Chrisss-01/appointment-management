@@ -19,6 +19,7 @@ class CertificateRequest extends Model
         'purpose_text',
         'medical_history',
         'additional_notes',
+        'doctor_findings',
         'status',
         'rejection_reason',
         'verified_by',
@@ -95,6 +96,13 @@ class CertificateRequest extends Model
         }
 
         return $this->purpose_type ?? '';
+    }
+
+    public function getRemarksRecommendationAttribute(): string
+    {
+        $purpose = trim($this->purpose);
+
+        return 'Fit for ' . ($purpose !== '' ? $purpose : 'General Purpose');
     }
 
     public function scopeRejected($query)

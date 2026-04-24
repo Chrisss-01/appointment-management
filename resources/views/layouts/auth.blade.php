@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
 
     <title>@yield('title', 'Authentication') | UV Toledo Clinic</title>
 
@@ -16,4 +17,4 @@
 <body class="min-h-screen bg-[#0F0F0F] text-white antialiased">
     @yield('content')
 </body>
-</html>
+</html>

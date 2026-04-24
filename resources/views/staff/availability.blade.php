@@ -1096,6 +1096,13 @@ function availabilityManager() {
 
         async deleteTimeslot(slot) {
             this.pendingDeleteSlot = slot;
+            if (typeof slot.has_bookings === 'boolean') {
+                slot.has_bookings
+                    ? this.showCancelModal(slot, slot.booked_slots ?? 0)
+                    : this.showSimpleDeleteModal(slot);
+                return;
+            }
+
             try {
                 const res  = await fetch(slot.check_url, {
                     headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },

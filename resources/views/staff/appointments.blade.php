@@ -98,9 +98,16 @@
                     <td class="px-5 py-4 text-right">
                         <div class="flex items-center justify-end gap-2">
                             @if($apt->status === 'pending')
-                            <form action="{{ route('staff.appointments.approve', $apt) }}" method="POST">
+                            <form action="{{ route('staff.appointments.approve', $apt) }}" method="POST" x-data="{ submitting: false }" @submit="submitting = true">
                                 @csrf @method('PATCH')
-                                <button class="px-3 py-1.5 bg-[#1392EC] hover:opacity-90 text-white text-xs font-medium rounded-lg transition-all">Approve</button>
+                                <button type="submit"
+                                    :disabled="submitting"
+                                    class="px-3 py-1.5 bg-[#1392EC] hover:opacity-90 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 min-w-[102px]">
+                                    <template x-if="submitting">
+                                        <div class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    </template>
+                                    <span x-text="submitting ? 'Approving...' : 'Approve'"></span>
+                                </button>
                             </form>
                             <button onclick="showRejectModal({{ $apt->id }})" class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg transition-all">Reject</button>
                             @elseif($apt->status === 'approved')

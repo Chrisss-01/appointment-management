@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\OtpVerificationController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboard;
 use App\Http\Controllers\Student\AppointmentController as StudentAppointment;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboard;
@@ -21,10 +22,10 @@ use App\Http\Controllers\Admin\CertificateTypeController;
 use App\Http\Controllers\Admin\ReasonPresetController;
 use App\Http\Controllers\Admin\DoctorSignatureController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\Student\OnboardingController;
 use App\Http\Controllers\Student\CertificateController as StudentCertificate;
 use App\Http\Controllers\CertificateVerificationController;
-use App\Http\Controllers\PublicPageController;
 use Illuminate\Support\Facades\Route;
 
 // ──────────────────────────────────────────────────────────────────
@@ -32,18 +33,36 @@ use Illuminate\Support\Facades\Route;
 // ──────────────────────────────────────────────────────────────────
 
 Route::view('/', 'landing')->name('landing');
-
-
-
-// Public certificate verification
-Route::get('/certificates/verify/{certificateNumber}', [CertificateVerificationController::class, 'verify'])->name('certificates.verify');
-
-// Public Legal Pages
+Route::get('/schedule', [PublicPageController::class, 'schedule'])->name('public.schedule');
 Route::get('/privacy-policy', [PublicPageController::class, 'privacy'])->name('legal.privacy');
 Route::get('/terms-of-service', [PublicPageController::class, 'terms'])->name('legal.terms');
 
-// Public Clinic Schedule
-Route::get('/clinic-schedule', [PublicPageController::class, 'schedule'])->name('public.schedule');
+// Mail diagnostic route (remove in production)
+Route::get('/mail-test/{email}', function (string $email) {
+    try {
+        \Illuminate\Support\Facades\Mail::to($email)->send(
+            new \App\Mail\SendOtpMail('123456')
+        );
+        return response()->json([
+            'status' => 'success',
+            'message' => "Test OTP email sent to {$email}",
+            'driver' => config('mail.default'),
+            'host' => config('mail.mailers.smtp.host'),
+            'port' => config('mail.mailers.smtp.port'),
+            'scheme' => config('mail.mailers.smtp.scheme'),
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'class' => get_class($e),
+            'driver' => config('mail.default'),
+        ], 500);
+    }
+})->where('email', '.*');
+
+// Public certificate verification
+Route::get('/certificates/verify/{certificateNumber}', [CertificateVerificationController::class, 'verify'])->name('certificates.verify');
 
 // Auth routes (guest only)
 Route::middleware('guest')->group(function () {
@@ -51,19 +70,15 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
     Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
+    Route::get('/forgot-password', [PasswordResetController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
     Route::get('/verify-otp', [OtpVerificationController::class, 'show'])->name('otp.show');
     Route::post('/verify-otp', [OtpVerificationController::class, 'verify'])->name('otp.verify');
     Route::post('/resend-otp', [OtpVerificationController::class, 'resend'])->name('otp.resend');
     Route::get('/staff/login', [AuthController::class, 'showStaffLoginForm'])->name('staff.login');
     Route::post('/staff/login', [AuthController::class, 'staffLogin'])->name('staff.login.submit');
-
-    // Password Reset
-    Route::get('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showLinkRequestForm'])->name('password.request');
-    Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'sendResetLinkEmail'])
-        ->middleware('throttle:3,10') // 3 requests per 10 mins
-        ->name('password.email');
-    Route::get('/reset-password/{token}', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'reset'])->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
@@ -142,7 +157,7 @@ Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->grou
     Route::patch('/appointments/{appointment}/reject', [StaffAppointment::class, 'reject'])->name('appointments.reject');
     Route::patch('/appointments/{appointment}/complete', [StaffAppointment::class, 'complete'])->name('appointments.complete');
     Route::patch('/appointments/{appointment}/no-show', [StaffAppointment::class, 'noShow'])->name('appointments.no-show');
-
+    
     // Clinical — Record Visits
     Route::get('/record-visits', [StaffAppointment::class, 'recordVisit'])->name('record-visits');
     Route::get('/record-visits/{appointment}/consultation', [StaffAppointment::class, 'showConsultation'])->name('record-visits.consultation');
@@ -162,6 +177,7 @@ Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.')->grou
     // Certificate Requests
     Route::get('/certificate-requests', [StaffCertificate::class, 'index'])->name('certificate-requests');
     Route::get('/certificate-requests/{certificateRequest}', [StaffCertificate::class, 'show'])->name('certificate-requests.show');
+    Route::get('/certificate-requests/{certificateRequest}/download', [StaffCertificate::class, 'download'])->name('certificate-requests.download');
     Route::patch('/certificate-requests/{certificateRequest}/verify', [StaffCertificate::class, 'verifyDocuments'])->name('certificate-requests.verify');
     Route::patch('/certificate-requests/{certificateRequest}/reject', [StaffCertificate::class, 'reject'])->name('certificate-requests.reject');
     Route::patch('/certificate-requests/{certificateRequest}/approve', [StaffCertificate::class, 'approve'])->name('certificate-requests.approve');
