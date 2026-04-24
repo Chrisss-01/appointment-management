@@ -88,7 +88,7 @@
         </table>
     </div>
     <div class="px-5 py-4 border-t border-white/5">
-        {{ $appointments->links() }}
+        {{ $appointments->links('vendor.pagination.appointments-dark') }}
     </div>
     @endif
 </div>
