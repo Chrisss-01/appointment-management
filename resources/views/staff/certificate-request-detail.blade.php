@@ -53,14 +53,18 @@
                 </div>
                 <div>
                     <p class="text-xs text-gray-500 mb-1">Purpose</p>
-                    <p class="text-sm text-white">
-                        @if($certificateRequest->purpose_type === 'other')
-                            {{ $certificateRequest->purpose_text ?? 'Other (unspecified)' }}
-                        @else
-                            {{ $certificateRequest->purpose_type ?? 'Not specified' }}
-                        @endif
-                    </p>
+                    <p class="text-sm text-white">{{ $certificateRequest->purpose ?: 'Not specified' }}</p>
                 </div>
+                @if($certificateRequest->isApproved())
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Doctor's Findings</p>
+                    <p class="text-sm text-white">{{ $certificateRequest->doctor_findings ?? 'N/A' }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">Remarks/Recommendation</p>
+                    <p class="text-sm text-white">{{ $certificateRequest->remarks_recommendation }}</p>
+                </div>
+                @endif
                 @if($certificateRequest->additional_notes)
                 <div>
                     <p class="text-xs text-gray-500 mb-1">Additional Notes</p>
@@ -247,6 +251,12 @@
             @if($certificateRequest->certificate_number)
                 <p class="text-xs text-gray-500 mt-1 font-mono">Cert #: {{ $certificateRequest->certificate_number }}</p>
             @endif
+            @if($certificateRequest->isApproved() && $certificateRequest->file_path)
+                <a href="{{ route('staff.certificate-requests.download', $certificateRequest) }}" class="mt-4 inline-flex items-center gap-2 px-4 py-2.5 bg-[#1392EC]/10 text-[#1392EC] border border-[#1392EC]/20 hover:bg-[#1392EC]/20 text-sm font-medium rounded-xl transition-all">
+                    <span class="material-symbols-outlined" style="font-size:16px;">download</span>
+                    Download Certificate
+                </a>
+            @endif
         </div>
 
         {{-- Actions --}}
@@ -268,6 +278,26 @@
                 @if(auth()->user()->isDoctor())
                 <form action="{{ route('staff.certificate-requests.approve', $certificateRequest) }}" method="POST" id="approve-form">
                     @csrf @method('PATCH')
+                    <div class="mb-3">
+                        <label for="doctor-findings-option" class="block text-xs text-gray-400 mb-1.5">Doctor's Findings <span class="text-red-400">*</span></label>
+                        <select id="doctor-findings-option" name="doctor_findings_option" class="w-full bg-[#141414] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500" required>
+                            <option value="">Select findings...</option>
+                            <option value="No significant findings" {{ old('doctor_findings_option') === 'No significant findings' ? 'selected' : '' }}>No significant findings</option>
+                            <option value="Clinically stable" {{ old('doctor_findings_option') === 'Clinically stable' ? 'selected' : '' }}>Clinically stable</option>
+                            <option value="Cleared after assessment" {{ old('doctor_findings_option') === 'Cleared after assessment' ? 'selected' : '' }}>Cleared after assessment</option>
+                            <option value="other" {{ old('doctor_findings_option') === 'other' ? 'selected' : '' }}>Other</option>
+                        </select>
+                        @error('doctor_findings_option')
+                            <p class="text-xs text-red-400 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div id="doctor-findings-other-wrapper" class="{{ old('doctor_findings_option') === 'other' ? '' : 'hidden' }} mb-3">
+                        <label for="doctor-findings-other" class="block text-xs text-gray-400 mb-1.5">Specify Findings <span class="text-red-400">*</span></label>
+                        <input type="text" id="doctor-findings-other" name="doctor_findings_other" value="{{ old('doctor_findings_other') }}" class="w-full bg-[#141414] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500" placeholder="Enter custom findings...">
+                        @error('doctor_findings_other')
+                            <p class="text-xs text-red-400 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
                     <button type="button" id="approve-btn" class="w-full py-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-sm font-medium rounded-xl transition-all flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined" style="font-size:16px;">check_circle</span>
                         Approve & Generate Certificate
@@ -313,6 +343,27 @@ medHistoryToggle?.addEventListener('click', () => {
 });
 
 // Approve confirmation
+function toggleDoctorFindingsOther() {
+    const select = document.getElementById('doctor-findings-option');
+    const wrapper = document.getElementById('doctor-findings-other-wrapper');
+    const input = document.getElementById('doctor-findings-other');
+
+    if (!select || !wrapper || !input) {
+        return;
+    }
+
+    if (select.value === 'other') {
+        wrapper.classList.remove('hidden');
+        input.setAttribute('required', 'required');
+    } else {
+        wrapper.classList.add('hidden');
+        input.removeAttribute('required');
+    }
+}
+
+document.getElementById('doctor-findings-option')?.addEventListener('change', toggleDoctorFindingsOther);
+toggleDoctorFindingsOther();
+
 document.getElementById('approve-btn')?.addEventListener('click', () => {
     Notify.confirm('Approve Certificate', 'Approve this certificate and generate PDF?').then(res => {
         if(res.isConfirmed) document.getElementById('approve-form').submit();

@@ -63,6 +63,14 @@
                 <td>{{ $purpose ?? 'General Purpose' }}</td>
             </tr>
             <tr>
+                <td>Doctor's Findings</td>
+                <td>{{ $doctorFindings ?? 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td>Remarks/Recommendation</td>
+                <td>{{ $remarksRecommendation ?? 'Fit for General Purpose' }}</td>
+            </tr>
+            <tr>
                 <td>Date Issued</td>
                 <td>{{ $issueDate }}</td>
             </tr>

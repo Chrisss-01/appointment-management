@@ -53,7 +53,7 @@ class CertificateService
     /**
      * Approve a certificate request and generate PDF (doctor action).
      */
-    public function approve(CertificateRequest $request, User $doctor): CertificateRequest
+    public function approve(CertificateRequest $request, User $doctor, string $doctorFindings): CertificateRequest
     {
         $certificateNumber = CertificateRequest::generateCertificateNumber();
         $verificationUrl = url("/certificates/verify/{$certificateNumber}");
@@ -69,6 +69,7 @@ class CertificateService
             'approved_by' => $doctor->id,
             'approved_at' => now(),
             'certificate_number' => $certificateNumber,
+            'doctor_findings' => $doctorFindings,
             'qr_code' => $verificationUrl,
         ]);
 
@@ -106,6 +107,8 @@ class CertificateService
             'studentName' => $request->student->name,
             'studentId' => $request->student->student_id,
             'purpose' => $request->purpose,
+            'doctorFindings' => $request->doctor_findings,
+            'remarksRecommendation' => $request->remarks_recommendation,
             'issueDate' => $request->approved_at->format('F d, Y'),
             'clinicName' => 'UV Toledo Clinic',
             'doctorName' => $doctor->name,

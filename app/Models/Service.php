@@ -29,8 +29,6 @@ class Service extends Model
         ];
     }
 
-    // ── Relationships ───────────────────────────────────────────────
-
     public function availabilitySlots(): HasMany
     {
         return $this->hasMany(AvailabilitySlot::class);
@@ -51,21 +49,15 @@ class Service extends Model
         return $this->hasMany(ReasonPreset::class);
     }
 
-    // ── Scopes ──────────────────────────────────────────────────────
-
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    /**
-     * Check if the service has any available slots today or in the future.
-     */
     public function isAvailable(): bool
     {
         return $this->generatedSlots()
-            ->where('status', 'available')
-            ->where('date', '>=', now()->toDateString())
+            ->bookableForStudents()
             ->exists();
     }
 }

@@ -92,16 +92,22 @@ class SlotGenerationService
                 ->get();
 
             foreach ($bookedSlots as $slot) {
-                if ($slot->appointment && in_array($slot->appointment->status, ['pending', 'approved'])) {
-                    $slot->appointment->cancelByStaff($cancellationReason);
+                $appointment = $slot->appointment;
+
+                if ($appointment && in_array($appointment->status, ['pending', 'approved'])) {
+                    $appointment->cancelByStaff($cancellationReason);
 
                     Notification::send(
-                        $slot->appointment->student_id,
+                        $appointment->student_id,
                         'appointment_cancelled',
                         'Appointment Cancelled by Staff',
-                        "Your appointment on {$slot->appointment->date->format('M d, Y')} at {$slot->appointment->start_time} has been cancelled by staff. Reason: {$cancellationReason}",
-                        ['appointment_id' => $slot->appointment->id]
+                        "Your appointment on {$appointment->date->format('M d, Y')} at {$appointment->start_time} has been cancelled by staff. Reason: {$cancellationReason}",
+                        ['appointment_id' => $appointment->id]
                     );
+
+                    $appointment->update([
+                        'generated_slot_id' => null,
+                    ]);
                 }
             }
 
